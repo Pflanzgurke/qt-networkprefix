@@ -1,2 +1,2 @@
 # qt-networkprefix
-Implementation of IP version agnostic IP prefix handling
+Implementation of IP version-agnostic IP prefix handling

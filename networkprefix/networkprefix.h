@@ -8,6 +8,11 @@ class NetworkPrefix
 public:
     explicit NetworkPrefix();
     explicit NetworkPrefix(QHostAddress address);
+
+    /* note: parseSubnet() will correct wrong subnet strings e.g.
+     * if 192.168.11.0/23 is used it will turn (correctly) into
+     * 192.168.10.0/23, TODO: all other ctors should behave the same
+     */
     explicit NetworkPrefix(const QString &prefixString)
     : NetworkPrefix(QHostAddress::parseSubnet(prefixString))
     {}

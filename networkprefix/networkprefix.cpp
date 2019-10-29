@@ -24,6 +24,9 @@ NetworkPrefix::NetworkPrefix(QHostAddress address)
     } else if (isIpv6()) {
         m_networkPrefix.second = 128;
     }
+
+    //if none of the above, it will leave this an invalid prefix,
+    //which is correct
 }
 
 NetworkPrefix::NetworkPrefix(QHostAddress address, int prefixLength)
@@ -31,6 +34,8 @@ NetworkPrefix::NetworkPrefix(QHostAddress address, int prefixLength)
 {
     m_networkPrefix.first = address;
     m_networkPrefix.second = prefixLength;
+
+    //the above could be invalid
 }
 
 QPair<QHostAddress, int> NetworkPrefix::networkPrefix() const
@@ -45,6 +50,8 @@ void NetworkPrefix::setNetworkPrefix(const QPair<QHostAddress, int> &networkPref
 
 void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
 {
+    //note: parseSubnet can handle raw IP addresses, i.e. without prefix
+    //it will set 32 and 128 for IPv4 and IPv6 correctly
     m_networkPrefix = QHostAddress::parseSubnet(prefixString);
 }
 
@@ -189,7 +196,7 @@ bool NetworkPrefix::ipMismatch() const
             mask += 1;
         }
 
-        if ((addr & mask) > 0) {
+        if ((addr & mask) != 0) {
             return true; //mismatch
         }
         return false;
@@ -199,21 +206,13 @@ bool NetworkPrefix::ipMismatch() const
         Q_IPV6ADDR addr = m_networkPrefix.first.toIPv6Address();
 
         //first see how many of the 16 array elements we need to look at
-        int arrCount = m_networkPrefix.second / 8;
-        int restBits = m_networkPrefix.second % 8;
+        int arrCount = (128 - m_networkPrefix.second) / 8;
+        int restBits = (128 - m_networkPrefix.second) % 8;
         for (int i = 0; i < arrCount; ++i) {
             if (addr[15 - i] != 0) {
                 return true;
             }
         }
-
-        //        QString addrstr;
-        //        for (int i = 0; i < 16; ++i) {
-        //            addrstr.append(QString::number((int) addr[i], 16));
-        //            if (i % 2 != 0)
-        //                addrstr.append(":");
-        //        }
-        //        qDebug() << "v6 addr: " << addrstr;
 
         //still need to check the potentially remaining bits in the last arr
         if (restBits > 0) {
@@ -223,7 +222,7 @@ bool NetworkPrefix::ipMismatch() const
                 mask += 1;
             }
 
-            if ((addr[15 - arrCount] & mask) > 0) {
+            if ((addr[15 - arrCount] & mask) != 0) {
                 return true; //mismatch
             }
 

@@ -39,6 +39,8 @@ public:
 
     bool isIpv4() const;
     bool isIpv6() const;
+    bool containsAddress(QHostAddress address);
+    bool containsPrefix(NetworkPrefix prefix);
 
     QAbstractSocket::NetworkLayerProtocol addressFamily() const;
 
@@ -49,6 +51,9 @@ private:
     QHostAddress nextIpv6Address();
     bool ipMismatch() const;
 
+    quint32 ipv4Netmask() const;    //should we make this public?
+    Q_IPV6ADDR ipv6Netmask() const; //should we make this public?
+
     QPair<QHostAddress, int> m_networkPrefix;
     int m_currentIteratorIndex;
 };
@@ -56,5 +61,6 @@ private:
 Q_DECLARE_METATYPE(NetworkPrefix);
 
 QDebug operator<<(QDebug dbg, const NetworkPrefix &prefix);
+bool operator==(NetworkPrefix a, NetworkPrefix b);
 
 #endif // NETWORKPREFIX_H

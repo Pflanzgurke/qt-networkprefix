@@ -116,6 +116,7 @@ bool NetworkPrefix::hasMoreAddresses() const
 
 qreal NetworkPrefix::addressCount() const
 {
+    //qreal as return value, because in IPv6, this could be huge
     if (!isValid()) {
         return 0;
     }
@@ -143,6 +144,37 @@ bool NetworkPrefix::isIpv4() const
 bool NetworkPrefix::isIpv6() const
 {
     if (addressFamily() == QAbstractSocket::IPv6Protocol) {
+        return true;
+    }
+
+    return false;
+}
+
+bool NetworkPrefix::containsAddress(QHostAddress address)
+{
+    //TODO: test what happens if the prefix is invalid
+    return address.isInSubnet(m_networkPrefix);
+}
+
+bool NetworkPrefix::containsPrefix(NetworkPrefix prefix)
+{
+    //TODO: implement fully
+    if (!isValid()) {
+        return false;
+    }
+
+    if (prefix.prefixLength() < prefixLength()) {
+        return false;
+    }
+
+    //TODO: does this work? Test
+    if (prefix == *this) {
+        return true;
+    }
+
+    //now we have to take a close look
+    //pretend the longer prefix is an address and see if it is inside the larger
+    if (containsAddress(prefix.address())) {
         return true;
     }
 
@@ -187,16 +219,12 @@ bool NetworkPrefix::isValid() const
 // check whether the IP address has bits set in the host part, which should not be
 bool NetworkPrefix::ipMismatch() const
 {
+    //TODO: test
     if (isIpv4()) {
         quint32 addr = m_networkPrefix.first.toIPv4Address();
-        quint32 mask = 0;
+        quint32 mask = ipv4Netmask();
 
-        for (int i = 0; i < 32 - m_networkPrefix.second; ++i) {
-            mask = mask << 1;
-            mask += 1;
-        }
-
-        if ((addr & mask) != 0) {
+        if ((addr & (~mask)) != 0) {
             return true; //mismatch
         }
         return false;
@@ -204,35 +232,55 @@ bool NetworkPrefix::ipMismatch() const
 
     if (isIpv6()) {
         Q_IPV6ADDR addr = m_networkPrefix.first.toIPv6Address();
+        Q_IPV6ADDR mask = ipv6Netmask();
 
-        //first see how many of the 16 array elements we need to look at
-        int arrCount = (128 - m_networkPrefix.second) / 8;
-        int restBits = (128 - m_networkPrefix.second) % 8;
-        for (int i = 0; i < arrCount; ++i) {
-            if (addr[15 - i] != 0) {
-                return true;
+        for (int i = 0; i < 16; ++i) {
+            if (~(mask[i]) > 0) {
+                if ((~(mask[i]) & addr[i]) > 0) {
+                    return true;
+                }
             }
-        }
-
-        //still need to check the potentially remaining bits in the last arr
-        if (restBits > 0) {
-            uint8_t mask = 0;
-            for (int i = 0; i < restBits; ++i) {
-                mask = mask << 1;
-                mask += 1;
-            }
-
-            if ((addr[15 - arrCount] & mask) != 0) {
-                return true; //mismatch
-            }
-
-            return false;
         }
 
         return false;
     }
 
     return true; //if something went wrong up there, then there has to be a mismatch
+}
+
+quint32 NetworkPrefix::ipv4Netmask() const
+{
+    if (!isValid() || isIpv6()) {
+        return 0;
+    }
+
+    return static_cast<quint32>(~(qFloor(qPow(2, 32 - m_networkPrefix.second) - 1)));
+}
+
+Q_IPV6ADDR NetworkPrefix::ipv6Netmask() const
+{
+    //TODO: test
+    Q_IPV6ADDR mask;
+    for (int i = 0; i < 16; ++i) {
+        mask[i] = 0;
+    }
+
+    if (!isValid() || isIpv4()) {
+        return mask;
+    }
+
+    //first see how many of the 16 array elements we need to look at
+    int arrCount = m_networkPrefix.second / 8;
+    int restBits = m_networkPrefix.second % 8;
+    for (int i = 0; i < arrCount; ++i) {
+        mask[i] = 255;
+    }
+
+    if (restBits) {
+        mask[arrCount] = static_cast<quint8>(~(qFloor((qPow(2, restBits)))));
+    }
+
+    return mask;
 }
 
 QHostAddress NetworkPrefix::nextIpv4Address()
@@ -269,4 +317,9 @@ QDebug operator<<(QDebug dbg, const NetworkPrefix &prefix)
     dbg.noquote();
     dbg << prefix.address().toString() << "/" << prefix.prefixLength();
     return dbg;
+}
+
+bool operator==(NetworkPrefix a, NetworkPrefix b)
+{
+    return a.address() == b.address() && a.prefixLength() == b.prefixLength();
 }

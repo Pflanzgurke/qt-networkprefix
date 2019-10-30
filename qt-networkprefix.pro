@@ -2,4 +2,5 @@ TEMPLATE = subdirs
 
 SUBDIRS += \
     example \
-    networkprefix
+    networkprefix \
+    networkprefixset

@@ -36,6 +36,10 @@ NetworkPrefix::NetworkPrefix(QHostAddress address, int prefixLength)
     m_networkPrefix.second = prefixLength;
 
     //the above could be invalid
+    if (address.isNull()) {
+        m_networkPrefix.second = -1;
+        return;
+    }
 }
 
 QPair<QHostAddress, int> NetworkPrefix::networkPrefix() const
@@ -256,7 +260,8 @@ bool NetworkPrefix::ipMismatch() const
 
 quint32 NetworkPrefix::ipv4Netmask() const
 {
-    if (!isValid() || isIpv6()) {
+    //make sure isValid has been called before calling this
+    if (!isIpv4()) {
         return 0;
     }
 
@@ -271,7 +276,7 @@ Q_IPV6ADDR NetworkPrefix::ipv6Netmask() const
         mask[i] = 0;
     }
 
-    if (!isValid() || isIpv4()) {
+    if (!isIpv6()) {
         return mask;
     }
 
@@ -287,6 +292,48 @@ Q_IPV6ADDR NetworkPrefix::ipv6Netmask() const
     }
 
     return mask;
+}
+
+void NetworkPrefix::trimmPrefix()
+{
+    //cut away excessive host parts, if present
+    if (isIpv4()) {
+        trimmIpv4();
+    }
+    if (isIpv6()) {
+        trimmIpv6();
+    }
+}
+
+void NetworkPrefix::trimmIpv4()
+{
+    quint32 mask = ipv4Netmask();
+    quint32 addr = m_networkPrefix.first.toIPv4Address();
+    quint32 originalAddress = addr;
+
+    addr = addr && mask;
+    if (addr != originalAddress) {
+        m_networkPrefix.first = QHostAddress(addr);
+    }
+}
+
+void NetworkPrefix::trimmIpv6()
+{
+    Q_IPV6ADDR mask = ipv6Netmask();
+    Q_IPV6ADDR addr = m_networkPrefix.first.toIPv6Address();
+    Q_IPV6ADDR originalAddress = addr;
+
+    for (int i = 0; i < 16; ++i) {
+        addr[i] = addr[i] & mask[i];
+    }
+
+    //compare
+    for (int i = 0; i < 16; ++i) {
+        if (addr[i] != originalAddress[i]) {
+            m_networkPrefix.first = QHostAddress(addr);
+            break;
+        }
+    }
 }
 
 QHostAddress NetworkPrefix::nextIpv4Address()
@@ -314,6 +361,8 @@ QHostAddress NetworkPrefix::nextIpv6Address()
             break;
         }
     }
+
+    ++m_currentIteratorIndex;
 
     return QHostAddress(addr);
 }

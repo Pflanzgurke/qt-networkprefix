@@ -54,6 +54,10 @@ private:
     quint32 ipv4Netmask() const;    //should we make this public?
     Q_IPV6ADDR ipv6Netmask() const; //should we make this public?
 
+    void trimmPrefix();
+    void trimmIpv4();
+    void trimmIpv6();
+
     QPair<QHostAddress, int> m_networkPrefix;
     int m_currentIteratorIndex;
 };

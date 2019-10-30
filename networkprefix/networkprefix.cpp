@@ -46,6 +46,7 @@ QPair<QHostAddress, int> NetworkPrefix::networkPrefix() const
 void NetworkPrefix::setNetworkPrefix(const QPair<QHostAddress, int> &networkPrefix)
 {
     m_networkPrefix = networkPrefix;
+    m_currentIteratorIndex = 0;
 }
 
 void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
@@ -53,16 +54,20 @@ void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
     //note: parseSubnet can handle raw IP addresses, i.e. without prefix
     //it will set 32 and 128 for IPv4 and IPv6 correctly
     m_networkPrefix = QHostAddress::parseSubnet(prefixString);
+    m_currentIteratorIndex = 0;
 }
 
 void NetworkPrefix::setAddress(const QHostAddress &address)
 {
     m_networkPrefix.first = address;
+    //setting a new address should invalidate the iterator
+    m_currentIteratorIndex = 0;
 }
 
 void NetworkPrefix::setAddress(const QString &address)
 {
     m_networkPrefix.first = QHostAddress(address);
+    m_currentIteratorIndex = 0;
 }
 
 QHostAddress NetworkPrefix::address() const
@@ -73,6 +78,7 @@ QHostAddress NetworkPrefix::address() const
 void NetworkPrefix::setPrefixLength(int length)
 {
     m_networkPrefix.second = length;
+    m_currentIteratorIndex = 0;
 }
 
 int NetworkPrefix::prefixLength() const

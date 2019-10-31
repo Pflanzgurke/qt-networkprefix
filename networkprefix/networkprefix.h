@@ -41,6 +41,9 @@ public:
     bool isIpv6() const;
     bool containsAddress(QHostAddress address);
     bool containsPrefix(NetworkPrefix prefix);
+    bool canAggregate(NetworkPrefix prefix);
+
+    static NetworkPrefix aggregate(NetworkPrefix a, NetworkPrefix b);
 
     QAbstractSocket::NetworkLayerProtocol addressFamily() const;
 

@@ -2,12 +2,21 @@
 
 #include <QtMath>
 
+/**
+ * @brief NetworkPrefix::NetworkPrefix
+ */
+
 NetworkPrefix::NetworkPrefix()
 : m_currentIteratorIndex(0)
 {
     m_networkPrefix.first = QHostAddress();
     m_networkPrefix.second = -1;
 }
+
+/**
+ * @brief NetworkPrefix::NetworkPrefix
+ * @param address
+ */
 
 NetworkPrefix::NetworkPrefix(QHostAddress address)
 : m_currentIteratorIndex(0)
@@ -29,6 +38,12 @@ NetworkPrefix::NetworkPrefix(QHostAddress address)
     //which is correct
 }
 
+/**
+ * @brief NetworkPrefix::NetworkPrefix
+ * @param address
+ * @param prefixLength
+ */
+
 NetworkPrefix::NetworkPrefix(QHostAddress address, int prefixLength)
 : m_currentIteratorIndex(0)
 {
@@ -42,16 +57,31 @@ NetworkPrefix::NetworkPrefix(QHostAddress address, int prefixLength)
     }
 }
 
+/**
+ * @brief NetworkPrefix::networkPrefix
+ * @return 
+ */
+
 QPair<QHostAddress, int> NetworkPrefix::networkPrefix() const
 {
     return m_networkPrefix;
 }
+
+/**
+ * @brief NetworkPrefix::setNetworkPrefix
+ * @param networkPrefix
+ */
 
 void NetworkPrefix::setNetworkPrefix(const QPair<QHostAddress, int> &networkPrefix)
 {
     m_networkPrefix = networkPrefix;
     m_currentIteratorIndex = 0;
 }
+
+/**
+ * @brief NetworkPrefix::setNetworkPrefix
+ * @param prefixString
+ */
 
 void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
 {
@@ -61,6 +91,11 @@ void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
     m_currentIteratorIndex = 0;
 }
 
+/**
+ * @brief NetworkPrefix::setAddress
+ * @param address
+ */
+
 void NetworkPrefix::setAddress(const QHostAddress &address)
 {
     m_networkPrefix.first = address;
@@ -68,16 +103,31 @@ void NetworkPrefix::setAddress(const QHostAddress &address)
     m_currentIteratorIndex = 0;
 }
 
+/**
+ * @brief NetworkPrefix::setAddress
+ * @param address
+ */
+
 void NetworkPrefix::setAddress(const QString &address)
 {
     m_networkPrefix.first = QHostAddress(address);
     m_currentIteratorIndex = 0;
 }
 
+/**
+ * @brief NetworkPrefix::address
+ * @return 
+ */
+
 QHostAddress NetworkPrefix::address() const
 {
     return m_networkPrefix.first;
 }
+
+/**
+ * @brief NetworkPrefix::setPrefixLength
+ * @param length
+ */
 
 void NetworkPrefix::setPrefixLength(int length)
 {
@@ -85,15 +135,29 @@ void NetworkPrefix::setPrefixLength(int length)
     m_currentIteratorIndex = 0;
 }
 
+/**
+ * @brief NetworkPrefix::prefixLength
+ * @return 
+ */
+
 int NetworkPrefix::prefixLength() const
 {
     return m_networkPrefix.second;
 }
 
+/**
+ * @brief NetworkPrefix::resetIterator
+ */
+
 void NetworkPrefix::resetIterator()
 {
     m_currentIteratorIndex = 0;
 }
+
+/**
+ * @brief NetworkPrefix::nextAddress
+ * @return 
+ */
 
 QHostAddress NetworkPrefix::nextAddress()
 {
@@ -115,6 +179,11 @@ QHostAddress NetworkPrefix::nextAddress()
     return QHostAddress();
 }
 
+/**
+ * @brief NetworkPrefix::hasMoreAddresses
+ * @return 
+ */
+
 bool NetworkPrefix::hasMoreAddresses() const
 {
     if (m_currentIteratorIndex >= addressCount()) { // last one?
@@ -123,6 +192,11 @@ bool NetworkPrefix::hasMoreAddresses() const
 
     return true;
 }
+
+/**
+ * @brief NetworkPrefix::addressCount
+ * @return 
+ */
 
 qreal NetworkPrefix::addressCount() const
 {
@@ -142,6 +216,11 @@ qreal NetworkPrefix::addressCount() const
     return 0;
 }
 
+/**
+ * @brief NetworkPrefix::isIpv4
+ * @return 
+ */
+
 bool NetworkPrefix::isIpv4() const
 {
     if (addressFamily() == QAbstractSocket::IPv4Protocol) {
@@ -150,6 +229,11 @@ bool NetworkPrefix::isIpv4() const
 
     return false;
 }
+
+/**
+ * @brief NetworkPrefix::isIpv6
+ * @return 
+ */
 
 bool NetworkPrefix::isIpv6() const
 {
@@ -160,11 +244,23 @@ bool NetworkPrefix::isIpv6() const
     return false;
 }
 
+/**
+ * @brief NetworkPrefix::containsAddress
+ * @param address
+ * @return 
+ */
+
 bool NetworkPrefix::containsAddress(QHostAddress address)
 {
     //TODO: test what happens if the prefix is invalid
     return address.isInSubnet(m_networkPrefix);
 }
+
+/**
+ * @brief NetworkPrefix::containsPrefix
+ * @param prefix
+ * @return 
+ */
 
 bool NetworkPrefix::containsPrefix(NetworkPrefix prefix)
 {
@@ -191,6 +287,41 @@ bool NetworkPrefix::containsPrefix(NetworkPrefix prefix)
     return false;
 }
 
+/**
+ * @brief NetworkPrefix::canAggregate
+ * @param prefix
+ * @return 
+ */
+
+bool NetworkPrefix::canAggregate(NetworkPrefix prefix)
+{
+    Q_UNUSED(prefix)
+
+    return false;
+}
+
+/**
+ * @brief NetworkPrefix::aggregate
+ * @param a
+ * @param b
+ * @return 
+ */
+
+NetworkPrefix NetworkPrefix::aggregate(NetworkPrefix a, NetworkPrefix b)
+{
+    Q_UNUSED(a)
+    Q_UNUSED(b)
+    //TODO: implement
+    //return an aggregate if aggregation is possible, otherwise return an
+    //invalid prefix
+    return NetworkPrefix();
+}
+
+/**
+ * @brief NetworkPrefix::addressFamily
+ * @return 
+ */
+
 QAbstractSocket::NetworkLayerProtocol NetworkPrefix::addressFamily() const
 {
     if (m_networkPrefix.first.protocol() == QAbstractSocket::IPv4Protocol
@@ -200,6 +331,11 @@ QAbstractSocket::NetworkLayerProtocol NetworkPrefix::addressFamily() const
 
     return QAbstractSocket::UnknownNetworkLayerProtocol;
 }
+
+/**
+ * @brief NetworkPrefix::isValid
+ * @return 
+ */
 
 bool NetworkPrefix::isValid() const
 {
@@ -227,6 +363,11 @@ bool NetworkPrefix::isValid() const
 }
 
 // check whether the IP address has bits set in the host part, which should not be
+/**
+ * @brief NetworkPrefix::ipMismatch
+ * @return 
+ */
+
 bool NetworkPrefix::ipMismatch() const
 {
     //TODO: test
@@ -258,6 +399,11 @@ bool NetworkPrefix::ipMismatch() const
     return true; //if something went wrong up there, then there has to be a mismatch
 }
 
+/**
+ * @brief NetworkPrefix::ipv4Netmask
+ * @return 
+ */
+
 quint32 NetworkPrefix::ipv4Netmask() const
 {
     //make sure isValid has been called before calling this
@@ -267,6 +413,11 @@ quint32 NetworkPrefix::ipv4Netmask() const
 
     return static_cast<quint32>(~(qFloor(qPow(2, 32 - m_networkPrefix.second) - 1)));
 }
+
+/**
+ * @brief NetworkPrefix::ipv6Netmask
+ * @return 
+ */
 
 Q_IPV6ADDR NetworkPrefix::ipv6Netmask() const
 {
@@ -294,6 +445,10 @@ Q_IPV6ADDR NetworkPrefix::ipv6Netmask() const
     return mask;
 }
 
+/**
+ * @brief NetworkPrefix::trimmPrefix
+ */
+
 void NetworkPrefix::trimmPrefix()
 {
     //cut away excessive host parts, if present
@@ -304,6 +459,10 @@ void NetworkPrefix::trimmPrefix()
         trimmIpv6();
     }
 }
+
+/**
+ * @brief NetworkPrefix::trimmIpv4
+ */
 
 void NetworkPrefix::trimmIpv4()
 {
@@ -316,6 +475,10 @@ void NetworkPrefix::trimmIpv4()
         m_networkPrefix.first = QHostAddress(addr);
     }
 }
+
+/**
+ * @brief NetworkPrefix::trimmIpv6
+ */
 
 void NetworkPrefix::trimmIpv6()
 {
@@ -336,6 +499,11 @@ void NetworkPrefix::trimmIpv6()
     }
 }
 
+/**
+ * @brief NetworkPrefix::nextIpv4Address
+ * @return 
+ */
+
 QHostAddress NetworkPrefix::nextIpv4Address()
 {
     //make sure isValid() has been called before calling nextIpv4Address
@@ -344,6 +512,11 @@ QHostAddress NetworkPrefix::nextIpv4Address()
     ++m_currentIteratorIndex;
     return QHostAddress(addr);
 }
+
+/**
+ * @brief NetworkPrefix::nextIpv6Address
+ * @return 
+ */
 
 QHostAddress NetworkPrefix::nextIpv6Address()
 {
@@ -367,12 +540,26 @@ QHostAddress NetworkPrefix::nextIpv6Address()
     return QHostAddress(addr);
 }
 
+/**
+ * @brief operator <<
+ * @param dbg
+ * @param prefix
+ * @return 
+ */
+
 QDebug operator<<(QDebug dbg, const NetworkPrefix &prefix)
 {
     dbg.noquote();
     dbg << prefix.address().toString() << "/" << prefix.prefixLength();
     return dbg;
 }
+
+/**
+ * @brief operator ==
+ * @param a
+ * @param b
+ * @return 
+ */
 
 bool operator==(NetworkPrefix a, NetworkPrefix b)
 {

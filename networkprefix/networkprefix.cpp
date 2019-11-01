@@ -47,13 +47,10 @@ NetworkPrefix::NetworkPrefix(QHostAddress address)
 NetworkPrefix::NetworkPrefix(QHostAddress address, int prefixLength)
 : m_currentIteratorIndex(0)
 {
-    m_networkPrefix.first = address;
-    m_networkPrefix.second = prefixLength;
+    m_networkPrefix = validateBounds(address, prefixLength);
 
-    //the above could be invalid
-    if (address.isNull()) {
-        m_networkPrefix.second = -1;
-        return;
+    if (isValid()) {
+        trimmPrefix();
     }
 }
 
@@ -74,8 +71,13 @@ QPair<QHostAddress, int> NetworkPrefix::networkPrefix() const
 
 void NetworkPrefix::setNetworkPrefix(const QPair<QHostAddress, int> &networkPrefix)
 {
-    m_networkPrefix = networkPrefix;
+    //setNetworkPrefix should either result in a proper prefix or null prefix
+    m_networkPrefix = validateBounds(networkPrefix.first, networkPrefix.second);
     m_currentIteratorIndex = 0;
+
+    if (isValid()) {
+        trimmPrefix();
+    }
 }
 
 /**
@@ -88,31 +90,28 @@ void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
     //note: parseSubnet can handle raw IP addresses, i.e. without prefix
     //it will set 32 and 128 for IPv4 and IPv6 correctly
     m_networkPrefix = QHostAddress::parseSubnet(prefixString);
+
+    //just checking
+    m_networkPrefix = validateBounds(m_networkPrefix.first, m_networkPrefix.second);
     m_currentIteratorIndex = 0;
+
+    if (isValid()) {
+        trimmPrefix();
+    }
 }
 
-/**
- * @brief NetworkPrefix::setAddress
- * @param address
- */
-
-void NetworkPrefix::setAddress(const QHostAddress &address)
+/*void NetworkPrefix::setAddress(const QHostAddress &address)
 {
     m_networkPrefix.first = address;
     //setting a new address should invalidate the iterator
     m_currentIteratorIndex = 0;
-}
+}*/
 
-/**
- * @brief NetworkPrefix::setAddress
- * @param address
- */
-
-void NetworkPrefix::setAddress(const QString &address)
+/*void NetworkPrefix::setAddress(const QString &address)
 {
     m_networkPrefix.first = QHostAddress(address);
     m_currentIteratorIndex = 0;
-}
+}*/
 
 /**
  * @brief NetworkPrefix::address
@@ -124,16 +123,11 @@ QHostAddress NetworkPrefix::address() const
     return m_networkPrefix.first;
 }
 
-/**
- * @brief NetworkPrefix::setPrefixLength
- * @param length
- */
-
-void NetworkPrefix::setPrefixLength(int length)
+/*void NetworkPrefix::setPrefixLength(int length)
 {
     m_networkPrefix.second = length;
     m_currentIteratorIndex = 0;
-}
+}*/
 
 /**
  * @brief NetworkPrefix::prefixLength
@@ -339,23 +333,9 @@ QAbstractSocket::NetworkLayerProtocol NetworkPrefix::addressFamily() const
 
 bool NetworkPrefix::isValid() const
 {
+    //since it should be impossible to set an crazy prefix combination
+    //just checking the address pr prefix should be enough, but...
     if (m_networkPrefix.first.isNull() || m_networkPrefix.second < 0) {
-        return false;
-    }
-
-    if (!isIpv4() && !isIpv6()) {
-        return false;
-    }
-
-    if (isIpv4() && m_networkPrefix.second > 32) {
-        return false;
-    }
-
-    if (isIpv6() && m_networkPrefix.second > 128) {
-        return false;
-    }
-
-    if (ipMismatch()) {
         return false;
     }
 
@@ -363,12 +343,8 @@ bool NetworkPrefix::isValid() const
 }
 
 // check whether the IP address has bits set in the host part, which should not be
-/**
- * @brief NetworkPrefix::ipMismatch
- * @return 
- */
-
-bool NetworkPrefix::ipMismatch() const
+// now, that no mismatched prefix should exist any more, we can live without it
+/*bool NetworkPrefix::ipMismatch() const
 {
     //TODO: test
     if (isIpv4()) {
@@ -397,7 +373,7 @@ bool NetworkPrefix::ipMismatch() const
     }
 
     return true; //if something went wrong up there, then there has to be a mismatch
-}
+}*/
 
 /**
  * @brief NetworkPrefix::ipv4Netmask
@@ -443,6 +419,28 @@ Q_IPV6ADDR NetworkPrefix::ipv6Netmask() const
     }
 
     return mask;
+}
+
+QPair<QHostAddress, int> NetworkPrefix::validateBounds(QHostAddress addr, int prefixLength) const
+{
+    if (addr.isNull() || prefixLength < 0) {
+        return QPair<QHostAddress, int>(addr, -1);
+    }
+
+    if (addr.protocol() == QAbstractSocket::IPv4Protocol && prefixLength > 32) {
+        return QPair<QHostAddress, int>(QHostAddress(), -1);
+    }
+
+    if (addr.protocol() == QAbstractSocket::IPv6Protocol && prefixLength > 128) {
+        return QPair<QHostAddress, int>(QHostAddress(), -1);
+    }
+
+    if (addr.protocol() != QAbstractSocket::IPv6Protocol
+        && addr.protocol() != QAbstractSocket::IPv4Protocol) {
+        return QPair<QHostAddress, int>(QHostAddress(), -1);
+    }
+
+    return QPair<QHostAddress, int>(addr, prefixLength);
 }
 
 /**

@@ -11,17 +11,12 @@ int main(int argc, char *argv[])
     qDebug() << "An empty prefix is" << (prefix.isValid() ? "valid" : "not valid");
 
     QHostAddress addr("192.168.2.0");
-    prefix.setAddress(addr);
 
     qDebug() << "If you only set an address, then the prefix is"
              << (prefix.isValid() ? "valid" : "not valid");
 
-    prefix.setPrefixLength(24);
-
     qDebug() << "If you set an address and prefix length, then the prefix is"
              << (prefix.isValid() ? "valid" : "not valid") << "Such as 192.168.1.0/24.";
-
-    prefix.setPrefixLength(16);
 
     qDebug() << "But be sure you set the prefix right! " << prefix << " is "
              << (prefix.isValid() ? "a valid" : "not a valid") << " network address";
@@ -33,8 +28,6 @@ int main(int argc, char *argv[])
 
     qDebug() << "You can also iterate through all addresses in a given prefix, e.g. " << prefix
              << ":";
-
-    prefix.setPrefixLength(23);
 
     /*QHostAddress next;
     while (prefix.hasMoreAddresses()) {

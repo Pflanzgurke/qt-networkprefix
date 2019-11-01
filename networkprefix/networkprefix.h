@@ -25,11 +25,14 @@ public:
     void setNetworkPrefix(const QPair<QHostAddress, int> &networkPrefix);
     void setNetworkPrefix(const QString &prefixString);
 
-    void setAddress(const QHostAddress &address);
-    void setAddress(const QString &address);
+    //removed those, in order to guarantee that there is always a valid prefix
+    //these setters made this more complex, either set a full prefix or nothing
+    //but not address and prefix separately, as that makes validation difficult/impossible
+    //void setAddress(const QHostAddress &address);
+    //void setAddress(const QString &address);
     QHostAddress address() const;
 
-    void setPrefixLength(int length);
+    //void setPrefixLength(int length);
     int prefixLength() const;
 
     void resetIterator();
@@ -52,10 +55,12 @@ public:
 private:
     QHostAddress nextIpv4Address();
     QHostAddress nextIpv6Address();
-    bool ipMismatch() const;
+    //bool ipMismatch() const;
 
     quint32 ipv4Netmask() const;    //should we make this public?
     Q_IPV6ADDR ipv6Netmask() const; //should we make this public?
+
+    QPair<QHostAddress, int> validateBounds(QHostAddress addr, int prefixLength) const;
 
     void trimmPrefix();
     void trimmIpv4();

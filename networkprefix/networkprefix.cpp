@@ -72,12 +72,7 @@ QPair<QHostAddress, int> NetworkPrefix::networkPrefix() const
 void NetworkPrefix::setNetworkPrefix(const QPair<QHostAddress, int> &networkPrefix)
 {
     //setNetworkPrefix should either result in a proper prefix or null prefix
-    m_networkPrefix = validateBounds(networkPrefix.first, networkPrefix.second);
-    m_currentIteratorIndex = 0;
-
-    if (isValid()) {
-        trimmPrefix();
-    }
+    setNetworkPrefix(networkPrefix.first, networkPrefix.second);
 }
 
 /**
@@ -100,18 +95,15 @@ void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
     }
 }
 
-/*void NetworkPrefix::setAddress(const QHostAddress &address)
+void NetworkPrefix::setNetworkPrefix(QHostAddress address, int prefixLength)
 {
-    m_networkPrefix.first = address;
-    //setting a new address should invalidate the iterator
+    m_networkPrefix = validateBounds(address, prefixLength);
     m_currentIteratorIndex = 0;
-}*/
 
-/*void NetworkPrefix::setAddress(const QString &address)
-{
-    m_networkPrefix.first = QHostAddress(address);
-    m_currentIteratorIndex = 0;
-}*/
+    if (isValid()) {
+        trimmPrefix();
+    }
+}
 
 /**
  * @brief NetworkPrefix::address
@@ -122,12 +114,6 @@ QHostAddress NetworkPrefix::address() const
 {
     return m_networkPrefix.first;
 }
-
-/*void NetworkPrefix::setPrefixLength(int length)
-{
-    m_networkPrefix.second = length;
-    m_currentIteratorIndex = 0;
-}*/
 
 /**
  * @brief NetworkPrefix::prefixLength
@@ -341,39 +327,6 @@ bool NetworkPrefix::isValid() const
 
     return true;
 }
-
-// check whether the IP address has bits set in the host part, which should not be
-// now, that no mismatched prefix should exist any more, we can live without it
-/*bool NetworkPrefix::ipMismatch() const
-{
-    //TODO: test
-    if (isIpv4()) {
-        quint32 addr = m_networkPrefix.first.toIPv4Address();
-        quint32 mask = ipv4Netmask();
-
-        if ((addr & (~mask)) != 0) {
-            return true; //mismatch
-        }
-        return false;
-    }
-
-    if (isIpv6()) {
-        Q_IPV6ADDR addr = m_networkPrefix.first.toIPv6Address();
-        Q_IPV6ADDR mask = ipv6Netmask();
-
-        for (int i = 0; i < 16; ++i) {
-            if (~(mask[i]) > 0) {
-                if ((~(mask[i]) & addr[i]) > 0) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    return true; //if something went wrong up there, then there has to be a mismatch
-}*/
 
 /**
  * @brief NetworkPrefix::ipv4Netmask

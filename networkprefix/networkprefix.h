@@ -24,15 +24,9 @@ public:
     QPair<QHostAddress, int> networkPrefix() const;
     void setNetworkPrefix(const QPair<QHostAddress, int> &networkPrefix);
     void setNetworkPrefix(const QString &prefixString);
+    void setNetworkPrefix(QHostAddress address, int prefixLength);
 
-    //removed those, in order to guarantee that there is always a valid prefix
-    //these setters made this more complex, either set a full prefix or nothing
-    //but not address and prefix separately, as that makes validation difficult/impossible
-    //void setAddress(const QHostAddress &address);
-    //void setAddress(const QString &address);
     QHostAddress address() const;
-
-    //void setPrefixLength(int length);
     int prefixLength() const;
 
     void resetIterator();

@@ -62,7 +62,18 @@ void networkprefix::construction()
         QVERIFY(ipv4QHostAddress.addressFamily() == QAbstractSocket::IPv4Protocol);
     }
 
-    {
+    { //incorrect IPv4 & v6 address constructors
+        NetworkPrefix tooLongPrefix("192.168.0.1/33");
+        nullPrefixTest(tooLongPrefix);
+        NetworkPrefix tooLongPrefix2(QHostAddress("192.168.0.0"), 65);
+        nullPrefixTest(tooLongPrefix2);
+        NetworkPrefix tooLongPrefix3("2a03:2880:f12d:83:face:b00c::25de/129");
+        nullPrefixTest(tooLongPrefix3);
+        NetworkPrefix tooShortPrefix(QHostAddress("2a03:2880:f12d:83:face:b00c::"), -1);
+        nullPrefixTest(tooShortPrefix);
+    }
+
+    { //correct IPv6 address constructor
         QHostAddress addrv6("2a03:2880:f12d:83:face:b00c::25de");
         NetworkPrefix ipv6QHostAddress(addrv6);
         QVERIFY(ipv6QHostAddress.isValid());
@@ -81,6 +92,18 @@ void networkprefix::construction()
 
     NetworkPrefix nullFromQHostAddress((QHostAddress()));
     nullPrefixTest(nullFromQHostAddress);
+
+    {
+        //see if prefix trimming works
+        //192.168.7.0/22 --> 192.168.4.0/22
+        NetworkPrefix trimm1("192.168.7.0/22");
+        QHostAddress addrv4("192.168.4.0");
+        QVERIFY(trimm1.address() == addrv4);
+
+        NetworkPrefix trimm2("2a03:2880:f12d:83:face:b00c:25d7::/110");
+        QHostAddress addrv6("2a03:2880:f12d:83:face:b00c:25d4::");
+        QVERIFY(trimm2.address() == addrv6);
+    }
 }
 
 void networkprefix::nullPrefixTest(NetworkPrefix prefix)

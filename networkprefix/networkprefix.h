@@ -36,6 +36,7 @@ public:
 
     bool isIpv4() const;
     bool isIpv6() const;
+
     bool containsAddress(QHostAddress address);
     bool containsPrefix(NetworkPrefix prefix);
     bool canAggregate(NetworkPrefix prefix);
@@ -49,7 +50,6 @@ public:
 private:
     QHostAddress nextIpv4Address();
     QHostAddress nextIpv6Address();
-    //bool ipMismatch() const;
 
     quint32 ipv4Netmask() const;    //should we make this public?
     Q_IPV6ADDR ipv6Netmask() const; //should we make this public?

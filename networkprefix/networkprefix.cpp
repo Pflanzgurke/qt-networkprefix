@@ -95,6 +95,12 @@ void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
     }
 }
 
+/**
+ * @brief NetworkPrefix::setNetworkPrefix
+ * @param address
+ * @param prefixLength
+ */
+
 void NetworkPrefix::setNetworkPrefix(QHostAddress address, int prefixLength)
 {
     m_networkPrefix = validateBounds(address, prefixLength);
@@ -244,7 +250,7 @@ bool NetworkPrefix::containsAddress(QHostAddress address)
 
 bool NetworkPrefix::containsPrefix(NetworkPrefix prefix)
 {
-    //TODO: implement fully
+    //TODO: test
     if (!isValid()) {
         return false;
     }
@@ -275,8 +281,70 @@ bool NetworkPrefix::containsPrefix(NetworkPrefix prefix)
 
 bool NetworkPrefix::canAggregate(NetworkPrefix prefix)
 {
-    Q_UNUSED(prefix)
+    //protocol has to be the same
+    //subnet lengths should be the same and the
+    //network parts should only differ in the last bit
+    //or one prefix is completely contained in the other
 
+    if (addressFamily() != prefix.addressFamily()) {
+        return false;
+    }
+
+    if (prefix.containsPrefix(*this) || containsPrefix(prefix)) {
+        return true;
+    }
+
+    //at this point, we can check whether they can properly be aggregates
+    if (prefixLength() != prefix.prefixLength()) {
+        return false;
+    }
+
+    //now they should only differ in the last bit of the network part
+    if (isIpv4()) {
+        quint32 a = address().toIPv4Address();
+        quint32 b = prefix.address().toIPv4Address();
+
+        if (((a ^ b) >> (32 - prefixLength())) == 1) {
+            return true;
+        }
+    }
+
+    if (isIpv6()) {
+        Q_IPV6ADDR a = address().toIPv6Address();
+        Q_IPV6ADDR b = prefix.address().toIPv6Address();
+
+        int arrCount = prefixLength() / 8;
+        int restBits = prefixLength() % 8;
+
+        for (int i = 0; i < arrCount - 1; ++i) {
+            if (a[15 - i] ^ b[15 - i]) {
+                return false;
+            }
+        }
+
+        //need to check the last arr for 0 and the check the rest bits separately
+        if (restBits) {
+            if (a[15 - arrCount - 1] ^ b[15 - arrCount - 1]) {
+                return false;
+            }
+
+            //check the remaining bits
+            if ((a[arrCount] ^ b[15 - arrCount]) >> restBits == 1) {
+                return true;
+            } else {
+                return false;
+            }
+
+        } else {
+            if ((a[15 - arrCount - 1] ^ b[15 - arrCount - 1]) != 1) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+    }
+
+    //protocol could be unknown for both or v4 check failed, therefore, return false here
     return false;
 }
 
@@ -368,16 +436,27 @@ Q_IPV6ADDR NetworkPrefix::ipv6Netmask() const
     }
 
     if (restBits) {
-        mask[arrCount] = static_cast<quint8>(~(qFloor((qPow(2, restBits)))));
+        mask[arrCount] = static_cast<quint8>(~(qFloor(qPow(2, 8 - restBits) - 1)));
     }
 
     return mask;
 }
 
+/**
+ * @brief NetworkPrefix::validateBounds
+ * @param addr
+ * @param prefixLength
+ * @return 
+ */
+
 QPair<QHostAddress, int> NetworkPrefix::validateBounds(QHostAddress addr, int prefixLength) const
 {
-    if (addr.isNull() || prefixLength < 0) {
+    if (addr.isNull()) {
         return QPair<QHostAddress, int>(addr, -1);
+    }
+
+    if (prefixLength < 0) {
+        return QPair<QHostAddress, int>(QHostAddress(), -1);
     }
 
     if (addr.protocol() == QAbstractSocket::IPv4Protocol && prefixLength > 32) {
@@ -406,6 +485,7 @@ void NetworkPrefix::trimmPrefix()
     if (isIpv4()) {
         trimmIpv4();
     }
+
     if (isIpv6()) {
         trimmIpv6();
     }
@@ -421,7 +501,7 @@ void NetworkPrefix::trimmIpv4()
     quint32 addr = m_networkPrefix.first.toIPv4Address();
     quint32 originalAddress = addr;
 
-    addr = addr && mask;
+    addr = addr & mask;
     if (addr != originalAddress) {
         m_networkPrefix.first = QHostAddress(addr);
     }

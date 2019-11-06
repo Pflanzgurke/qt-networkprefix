@@ -12,11 +12,14 @@ public:
 
 private:
     void nullPrefixTest(NetworkPrefix prefix);
+    void validPrefixTest(NetworkPrefix prefix, QHostAddress expectedAddress, int expectedLength);
 
 private slots:
     void initTestCase();
     void cleanupTestCase();
     void construction();
+    void addressIteration();
+    //void prefixArithmetics();
 };
 
 networkprefix::networkprefix()
@@ -42,27 +45,20 @@ void networkprefix::cleanupTestCase()
 void networkprefix::construction()
 {
     //default constructed prefix
-    NetworkPrefix nullPrefix;
-    nullPrefixTest(nullPrefix);
-
-    { //correct IPv4 address constructor
-        QHostAddress addrv4("192.168.0.1");
-        NetworkPrefix ipv4QHostAddress(addrv4);
-        QVERIFY(ipv4QHostAddress.isValid());
-        QVERIFY(ipv4QHostAddress.prefixLength() == 32);
-        QVERIFY(!ipv4QHostAddress.address().isNull());
-        QVERIFY(ipv4QHostAddress.hasMoreAddresses() == true);
-        QHostAddress tmp = ipv4QHostAddress.nextAddress();
-        QVERIFY(tmp == addrv4);
-        QVERIFY(!ipv4QHostAddress.hasMoreAddresses());
-        QVERIFY(ipv4QHostAddress.nextAddress().isNull());
-        QVERIFY(ipv4QHostAddress.isIpv4());
-        QVERIFY(!ipv4QHostAddress.isIpv6());
-        QVERIFY((qFloor(ipv4QHostAddress.addressCount()) == 1));
-        QVERIFY(ipv4QHostAddress.addressFamily() == QAbstractSocket::IPv4Protocol);
+    {
+        NetworkPrefix prefix;
+        nullPrefixTest(prefix);
     }
 
-    { //incorrect IPv4 & v6 address constructors
+    //correct IPv4 address constructor
+    {
+        QHostAddress addr("192.168.0.1");
+        NetworkPrefix prefix(addr);
+        validPrefixTest(prefix, addr, 32);
+    }
+
+    //incorrect IPv4 & v6 address constructors
+    {
         NetworkPrefix tooLongPrefix("192.168.0.1/33");
         nullPrefixTest(tooLongPrefix);
         NetworkPrefix tooLongPrefix2(QHostAddress("192.168.0.0"), 65);
@@ -73,38 +69,51 @@ void networkprefix::construction()
         nullPrefixTest(tooShortPrefix);
     }
 
-    { //correct IPv6 address constructor
-        QHostAddress addrv6("2a03:2880:f12d:83:face:b00c::25de");
-        NetworkPrefix ipv6QHostAddress(addrv6);
-        QVERIFY(ipv6QHostAddress.isValid());
-        QVERIFY(ipv6QHostAddress.prefixLength() == 128);
-        QVERIFY(!ipv6QHostAddress.address().isNull());
-        QVERIFY(ipv6QHostAddress.hasMoreAddresses() == true);
-        QHostAddress tmp = ipv6QHostAddress.nextAddress();
-        QVERIFY(tmp == addrv6);
-        QVERIFY(!ipv6QHostAddress.hasMoreAddresses());
-        QVERIFY(ipv6QHostAddress.nextAddress().isNull());
-        QVERIFY(!ipv6QHostAddress.isIpv4());
-        QVERIFY(ipv6QHostAddress.isIpv6());
-        QVERIFY((qFloor(ipv6QHostAddress.addressCount()) == 1));
-        QVERIFY(ipv6QHostAddress.addressFamily() == QAbstractSocket::IPv6Protocol);
+    //correct IPv6 address constructors
+    {
+        QHostAddress addr("2a03:2880:f12d:83:face:b00c::25de");
+        NetworkPrefix prefix(addr);
+        validPrefixTest(prefix, addr, 128);
     }
 
-    NetworkPrefix nullFromQHostAddress((QHostAddress()));
-    nullPrefixTest(nullFromQHostAddress);
+    {
+        NetworkPrefix nullFromQHostAddress((QHostAddress()));
+        nullPrefixTest(nullFromQHostAddress);
+    }
 
     {
         //see if prefix trimming works
-        //192.168.7.0/22 --> 192.168.4.0/22
-        NetworkPrefix trimm1("192.168.7.0/22");
-        QHostAddress addrv4("192.168.4.0");
-        QVERIFY(trimm1.address() == addrv4);
+        //192.168.24.0/20 --> 192.168.16.0/20
+        NetworkPrefix trimm1("192.168.24.0/20");
+        validPrefixTest(trimm1, QHostAddress("192.168.16.0"), 20);
 
         NetworkPrefix trimm2("2a03:2880:f12d:83:face:b00c:25d7::/110");
-        QHostAddress addrv6("2a03:2880:f12d:83:face:b00c:25d4::");
-        QVERIFY(trimm2.address() == addrv6);
+        validPrefixTest(trimm2, QHostAddress("2a03:2880:f12d:83:face:b00c:25d4::"), 110);
+    }
+
+    //the following is strictly speaking not construction but construction is
+    //really setting the prefix and re-setting the iterator, so here we go
+    {
+        NetworkPrefix prefix;
+        prefix.setNetworkPrefix(QHostAddress(), 12);
+        nullPrefixTest(prefix);
+        prefix.setNetworkPrefix(QHostAddress("192.168.0.0"), -1);
+        nullPrefixTest(prefix);
+        prefix.setNetworkPrefix(QHostAddress("192.168.0.0"), 33);
+        nullPrefixTest(prefix);
+        prefix.setNetworkPrefix("192.168.0.0/33");
+        nullPrefixTest(prefix);
+        prefix.setNetworkPrefix("192.168.0.1");
+        validPrefixTest(prefix, QHostAddress("192.168.0.1"), 32);
+        //prefix.setNetworkPrefix()
+
+        //prefix.setNetworkPrefix(QHostAddress("192.168.0.0"), 22);
+        //check trimming, too
+        //prefix.setNetworkPrefix(QHostAddress("192.168.33.0"), 16);
     }
 }
+
+void networkprefix::addressIteration() {}
 
 void networkprefix::nullPrefixTest(NetworkPrefix prefix)
 {
@@ -117,6 +126,43 @@ void networkprefix::nullPrefixTest(NetworkPrefix prefix)
     QVERIFY(qFloor(prefix.addressCount()) == 0);
     QVERIFY(!prefix.hasMoreAddresses());
     QVERIFY(prefix.addressFamily() == QAbstractSocket::UnknownNetworkLayerProtocol);
+}
+
+void networkprefix::validPrefixTest(NetworkPrefix prefix,
+                                    QHostAddress expectedAddress,
+                                    int expectedLength)
+{
+    QVERIFY(prefix.prefixLength() > 0);
+    QVERIFY(prefix.isValid());
+    QVERIFY(prefix.address() == expectedAddress);
+    QVERIFY(prefix.prefixLength() == expectedLength);
+    QVERIFY(prefix.addressFamily() == expectedAddress.protocol());
+    QVERIFY(prefix.isIpv4() || prefix.isIpv6());
+    QVERIFY(!prefix.address().isNull());
+    //even a host address should at the beginning have a single address
+    QVERIFY(prefix.hasMoreAddresses() == true);
+    QHostAddress tmp = prefix.nextAddress();
+    QVERIFY(tmp == prefix.address());
+
+    //get one more in case there is one
+    if ((prefix.isIpv4() && prefix.prefixLength() < 32)
+        || (prefix.isIpv6() && prefix.prefixLength() < 128)) {
+        QVERIFY(prefix.hasMoreAddresses());
+        QHostAddress addr = prefix.nextAddress();
+        QVERIFY(!addr.isNull() && addr != prefix.address());
+    } else {
+        QVERIFY(!prefix.hasMoreAddresses());
+        QVERIFY(prefix.nextAddress().isNull());
+    }
+
+    if (prefix.isIpv4()) {
+        QVERIFY(qFloor(prefix.addressCount()) == qFloor(qPow(2, 32 - expectedLength)));
+    } else {
+        QVERIFY(qFloor(prefix.addressCount()) == qFloor(qPow(2, 128 - expectedLength)));
+    }
+
+    //after all this address mangling, is the address still correct
+    QVERIFY(prefix.address() == expectedAddress);
 }
 
 QTEST_APPLESS_MAIN(networkprefix)

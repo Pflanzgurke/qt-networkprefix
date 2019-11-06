@@ -84,15 +84,9 @@ void NetworkPrefix::setNetworkPrefix(const QString &prefixString)
 {
     //note: parseSubnet can handle raw IP addresses, i.e. without prefix
     //it will set 32 and 128 for IPv4 and IPv6 correctly
-    m_networkPrefix = QHostAddress::parseSubnet(prefixString);
+    QPair<QHostAddress, int> prefix = QHostAddress::parseSubnet(prefixString);
 
-    //just checking
-    m_networkPrefix = validateBounds(m_networkPrefix.first, m_networkPrefix.second);
-    m_currentIteratorIndex = 0;
-
-    if (isValid()) {
-        trimmPrefix();
-    }
+    setNetworkPrefix(prefix.first, prefix.second);
 }
 
 /**
@@ -152,7 +146,6 @@ QHostAddress NetworkPrefix::nextAddress()
     }
 
     // generate next address
-    QHostAddress returnAddress;
 
     if (isIpv4()) {
         return nextIpv4Address();
@@ -184,7 +177,7 @@ bool NetworkPrefix::hasMoreAddresses() const
  * @return 
  */
 
-qreal NetworkPrefix::addressCount() const
+quint64 NetworkPrefix::addressCount() const
 {
     //qreal as return value, because in IPv6, this could be huge
     if (!isValid()) {
@@ -192,11 +185,11 @@ qreal NetworkPrefix::addressCount() const
     }
 
     if (isIpv4()) {
-        return qPow(2, 32 - m_networkPrefix.second);
+        return static_cast<quint64>(qPow(2, 32 - m_networkPrefix.second));
     }
 
     if (isIpv6()) {
-        return qPow(2, 128 - m_networkPrefix.second);
+        return static_cast<quint64>(qPow(2, 128 - m_networkPrefix.second));
     }
 
     return 0;
@@ -551,24 +544,19 @@ QHostAddress NetworkPrefix::nextIpv4Address()
 
 QHostAddress NetworkPrefix::nextIpv6Address()
 {
-    Q_IPV6ADDR addr = m_networkPrefix.first.toIPv6Address();
-    int arrCount = m_networkPrefix.second / 8;
-    if (arrCount % 8 > 0) {
-        ++arrCount;
-    }
+    Q_IPV6ADDR address = m_networkPrefix.first.toIPv6Address();
 
-    for (int i = 0; i < arrCount; ++i) {
-        if (addr[15 - arrCount] == 255) {
-            addr[15 - arrCount] = 0;
-        } else {
-            addr[15 - arrCount]++;
-            break;
-        }
+    //as the counter is only 64-bit, we only can create 2^64 addresses, so we
+    //do not need to look at the upper 64-bit of the prefix
+
+    //make the bottom part reflect the counter
+    for (int i = 0; i < 8; ++i) {
+        address[i] += m_currentIteratorIndex >> (8 * i);
     }
 
     ++m_currentIteratorIndex;
 
-    return QHostAddress(addr);
+    return QHostAddress(address);
 }
 
 /**

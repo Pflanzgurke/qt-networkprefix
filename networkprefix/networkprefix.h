@@ -1,3 +1,10 @@
+/**
+ * Current limitation: IPv6 prefixes can only be iterated up to a /64
+ * anything smaller, e.g. a /60 cannot be iterated as the internal counter
+ * is a 64-bit integer. But honestly, when you have to go through 2^64 addresses
+ * there seems to be something wrong. 
+ */
+
 #ifndef NETWORKPREFIX_H
 #define NETWORKPREFIX_H
 
@@ -32,7 +39,7 @@ public:
     void resetIterator();
     QHostAddress nextAddress();
     bool hasMoreAddresses() const;
-    qreal addressCount() const;
+    quint64 addressCount() const;
 
     bool isIpv4() const;
     bool isIpv6() const;
@@ -61,7 +68,7 @@ private:
     void trimmIpv6();
 
     QPair<QHostAddress, int> m_networkPrefix;
-    int m_currentIteratorIndex;
+    quint64 m_currentIteratorIndex;
 };
 
 Q_DECLARE_METATYPE(NetworkPrefix);

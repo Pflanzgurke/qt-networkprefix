@@ -105,11 +105,29 @@ void networkprefix::construction()
         nullPrefixTest(prefix);
         prefix.setNetworkPrefix("192.168.0.1");
         validPrefixTest(prefix, QHostAddress("192.168.0.1"), 32);
-        //prefix.setNetworkPrefix()
-
-        //prefix.setNetworkPrefix(QHostAddress("192.168.0.0"), 22);
+        prefix.setNetworkPrefix(QHostAddress("192.168.128.0"), 22);
+        validPrefixTest(prefix, QHostAddress("192.168.128.0"), 22);
         //check trimming, too
-        //prefix.setNetworkPrefix(QHostAddress("192.168.33.0"), 16);
+        prefix.setNetworkPrefix(QHostAddress("192.168.192.0"), 17);
+        validPrefixTest(prefix, QHostAddress("192.168.128.0"), 17);
+    }
+
+    //do the same for IPv6
+    {
+        NetworkPrefix prefix;
+        prefix.setNetworkPrefix(QHostAddress("2a03:4567:abcd:83:dead:beef:25d4::"), -1);
+        nullPrefixTest(prefix);
+        prefix.setNetworkPrefix(QHostAddress("2a03:4567:abcd:83:dead:beef:25d4::"), 129);
+        nullPrefixTest(prefix);
+        prefix.setNetworkPrefix("2a03:4567:abcd:83:dead:beef:25d4::/192");
+        nullPrefixTest(prefix);
+        prefix.setNetworkPrefix("2a03:4567:abcd:83:dead:beef:25d4::");
+        validPrefixTest(prefix, QHostAddress("2a03:4567:abcd:83:dead:beef:25d4::"), 128);
+        prefix.setNetworkPrefix(QHostAddress("2a03:4567:abcd:83:dead:beef:25d5::"), 112);
+        validPrefixTest(prefix, QHostAddress("2a03:4567:abcd:83:dead:beef:25d5::"), 112);
+        //check trimming, too
+        prefix.setNetworkPrefix(QHostAddress("2a03:4567:abcd:83:dead:beef:25d5::"), 109);
+        validPrefixTest(prefix, QHostAddress("2a03:4567:abcd:83:dead:beef:25d0::"), 109);
     }
 }
 

@@ -1,6 +1,9 @@
 #include "networkprefix.h"
 
+#include <QLoggingCategory>
 #include <QtMath>
+
+Q_LOGGING_CATEGORY(networkprefix_log, "networkprefix");
 
 /**
  * @brief NetworkPrefix::NetworkPrefix
@@ -52,6 +55,10 @@ NetworkPrefix::NetworkPrefix(QHostAddress address, int prefixLength)
     if (isValid()) {
         trimmPrefix();
     }
+
+    if (isIpv6() && m_networkPrefix.second <= 64) {
+        qCWarning(networkprefix_log) << "You cannot use IPv6 prefixes <= 64 for iteration";
+    }
 }
 
 /**
@@ -102,6 +109,10 @@ void NetworkPrefix::setNetworkPrefix(QHostAddress address, int prefixLength)
 
     if (isValid()) {
         trimmPrefix();
+    }
+
+    if (isIpv6() && m_networkPrefix.second <= 64) {
+        qCWarning(networkprefix_log) << "You cannot use IPv6 prefixes <= 64 for iteration";
     }
 }
 
@@ -411,7 +422,6 @@ quint32 NetworkPrefix::ipv4Netmask() const
 
 Q_IPV6ADDR NetworkPrefix::ipv6Netmask() const
 {
-    //TODO: test
     Q_IPV6ADDR mask;
     for (int i = 0; i < 16; ++i) {
         mask[i] = 0;
@@ -514,7 +524,7 @@ void NetworkPrefix::trimmIpv6()
         addr[i] = addr[i] & mask[i];
     }
 
-    //compare
+    //compare and set inc case they differ
     for (int i = 0; i < 16; ++i) {
         if (addr[i] != originalAddress[i]) {
             m_networkPrefix.first = QHostAddress(addr);
@@ -548,10 +558,16 @@ QHostAddress NetworkPrefix::nextIpv6Address()
 
     //as the counter is only 64-bit, we only can create 2^64 addresses, so we
     //do not need to look at the upper 64-bit of the prefix
+    //    QString addrStr;
+    //    for (int i = 15; i >= 0; i--) {
+    //        addrStr += QString::number(address[i], 16);
+    //    }
+
+    //    qDebug() << addrStr << "\n";
 
     //make the bottom part reflect the counter
-    for (int i = 0; i < 8; ++i) {
-        address[i] += m_currentIteratorIndex >> (8 * i);
+    for (int i = 15; i > 7; --i) {
+        address[i] += (m_currentIteratorIndex >> (8 * (15 - i)));
     }
 
     ++m_currentIteratorIndex;

@@ -556,15 +556,6 @@ QHostAddress NetworkPrefix::nextIpv6Address()
 {
     Q_IPV6ADDR address = m_networkPrefix.first.toIPv6Address();
 
-    //as the counter is only 64-bit, we only can create 2^64 addresses, so we
-    //do not need to look at the upper 64-bit of the prefix
-    //    QString addrStr;
-    //    for (int i = 15; i >= 0; i--) {
-    //        addrStr += QString::number(address[i], 16);
-    //    }
-
-    //    qDebug() << addrStr << "\n";
-
     //make the bottom part reflect the counter
     for (int i = 15; i > 7; --i) {
         address[i] += (m_currentIteratorIndex >> (8 * (15 - i)));

@@ -19,7 +19,7 @@ private slots:
     void cleanupTestCase();
     void construction();
     void addressIteration();
-    //void prefixArithmetics();
+    void prefixArithmetics();
 };
 
 networkprefix::networkprefix()
@@ -259,6 +259,30 @@ void networkprefix::addressIteration()
         QVERIFY(!nullPrefix.hasMoreAddresses());
         QVERIFY(nullPrefix.nextAddress().isNull());
         QVERIFY(nullPrefix.addressCount() == 0);
+    }
+}
+
+void networkprefix::prefixArithmetics()
+{
+    //arthmetics really are opertations on prefix to see if one contains the
+    //other, or if they can be aggregated and such
+
+    //lets start with one containing the other
+    {
+        NetworkPrefix v4Big("192.0.0.0/8");
+        NetworkPrefix v4Mid("192.168.0.0/16");
+        NetworkPrefix v4Small("192.168.1.0/24");
+        NetworkPrefix notFitBig("193.0.0.0/9");
+        NetworkPrefix notFitMid("192.169.0.0/17");
+        NetworkPrefix notFitSmall("192.168.2.0/25");
+
+        QVERIFY(v4Big.containsPrefix(v4Small));
+        QVERIFY(v4Big.containsPrefix(v4Mid));
+        QVERIFY(v4Mid.containsPrefix(v4Small));
+
+        QVERIFY(!v4Big.containsPrefix(notFitBig));
+        QVERIFY(!v4Mid.containsPrefix(notFitMid));
+        QVERIFY(!v4Small.containsPrefix(notFitSmall));
     }
 }
 

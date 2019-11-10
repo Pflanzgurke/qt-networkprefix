@@ -7,7 +7,7 @@ if(! include($$PWD/../networkprefix/networkprefix.pri) ) {
 INCLUDEPATH += $$PWD
 
 SOURCES += \
-    networkprefixset.cpp
+    $$PWD/networkprefixset.cpp
 
 HEADERS += \
-    networkprefixset.h
+    $$PWD/networkprefixset.h

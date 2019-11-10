@@ -23,6 +23,7 @@ public:
     QHostAddress nextAddress();
 
     NetworkPrefix longestPrefixMatch(QHostAddress address);
+    //QVector<QPair<NetworkPrefix, NetworkPrefix>> aggregate(int passes = -1);
     bool isCoveredBySet(NetworkPrefix prefix);
 
     void clear();

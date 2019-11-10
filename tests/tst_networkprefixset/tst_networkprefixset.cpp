@@ -43,11 +43,55 @@ void networkprefixset::construction()
         QVERIFY(prefixSet.nextAddress() == QHostAddress());
     }
 
-    //    {
-    //        QFile prefixSetFile(":/tst_input_correct.txt");
-    //        NetworkPrefixSet prefixSet(prefixSetFile);
-    //        QVERIFY(prefixSet.prefixCount() == 10);
-    //    }
+    {
+        QString filename(":/tst_input_correct.txt");
+        NetworkPrefixSet prefixSet(filename);
+        QVERIFY(prefixSet.prefixCount() == 10);
+        //QVERIFY(prefixSet.nextAddress() != QHostAddress());
+    }
+
+    {
+        QString filename(":/tst_input_correct.txt");
+        NetworkPrefixSet prefixSet(filename, false, false);
+        QVERIFY(prefixSet.prefixCount() == 10);
+        //QVERIFY(prefixSet.nextAddress() != QHostAddress());
+    }
+
+    {
+        QString filename(":/tst_input_with_duplicates.txt");
+        NetworkPrefixSet prefixSet(filename);
+        QVERIFY(prefixSet.prefixCount() == 13);
+        //QVERIFY(prefixSet.nextAddress() != QHostAddress());
+    }
+
+    {
+        QString filename(":/tst_input_with_duplicates.txt");
+        NetworkPrefixSet prefixSet(filename, false, false);
+        qDebug() << "----> " << prefixSet.prefixCount();
+        QVERIFY(prefixSet.prefixCount() == 10);
+        //QVERIFY(prefixSet.nextAddress() != QHostAddress());
+    }
+
+    {
+        QString filename(":/tst_input_with_errors.txt");
+        NetworkPrefixSet prefixSet(filename);
+        QVERIFY(prefixSet.prefixCount() == 0);
+        //QVERIFY(prefixSet.nextAddress() != QHostAddress());
+    }
+
+    {
+        QString filename(":/tst_input_with_errors.txt");
+        NetworkPrefixSet prefixSet(filename, true);
+        QVERIFY(prefixSet.prefixCount() == 13);
+        //QVERIFY(prefixSet.nextAddress() != QHostAddress());
+    }
+
+    {
+        QString filename(":/tst_input_with_errors.txt");
+        NetworkPrefixSet prefixSet(filename, true, false);
+        QVERIFY(prefixSet.prefixCount() == 10);
+        //QVERIFY(prefixSet.nextAddress() != QHostAddress());
+    }
 }
 
 QTEST_APPLESS_MAIN(networkprefixset)

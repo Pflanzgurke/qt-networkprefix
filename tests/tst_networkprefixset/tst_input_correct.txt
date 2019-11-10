@@ -12,7 +12,7 @@
 
 #the following prefixes will be corrected
 113.192.4.0/24
-2a03:abcd:1234:5678:3333:1:2:23/112
+2a03:abcd:1234:5678:3333:1:8:23/112
 
 #the ones below will be converted to host prefixes
 234.212.112.23

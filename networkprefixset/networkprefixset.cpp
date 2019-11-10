@@ -1,5 +1,6 @@
 #include "networkprefixset.h"
 
+#include <QFile>
 #include <QLoggingCategory>
 
 Q_LOGGING_CATEGORY(networkprefixset_log, "networkprefixset");
@@ -9,21 +10,25 @@ NetworkPrefixSet::NetworkPrefixSet()
 {
 }
 
-NetworkPrefixSet::NetworkPrefixSet(QFile &file, bool skipUnparsableLines, QString startOfComment)
+NetworkPrefixSet::NetworkPrefixSet(QString &fileName,
+                                   bool skipUnparsableLines,
+                                   bool allowDuplicates,
+                                   QString startOfComment)
 : m_currentPrefix(0)
 {
-    loadPrefixSetFromFile(file, skipUnparsableLines, startOfComment);
+    loadPrefixSetFromFile(fileName, skipUnparsableLines, allowDuplicates, startOfComment);
 }
 
-bool NetworkPrefixSet::loadPrefixSetFromFile(QFile &file,
+bool NetworkPrefixSet::loadPrefixSetFromFile(QString &fileName,
                                              bool skipUnparsableLines,
+                                             bool allowDuplicates,
                                              QString startOfComment)
 {
-    if (!file.isOpen()) {
-        if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-            qCWarning(networkprefixset_log) << "Unable to open file " << file.fileName();
-            return false;
-        }
+    QFile file(fileName);
+
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qCWarning(networkprefixset_log) << "Unable to open file " << fileName;
+        return false;
     }
 
     while (!file.atEnd()) {
@@ -44,10 +49,17 @@ bool NetworkPrefixSet::loadPrefixSetFromFile(QFile &file,
         NetworkPrefix prefix(line);
 
         if (prefix.isValid()) {
-            m_prefixSet.append(prefix);
+            if (!allowDuplicates) {
+                if (!m_prefixSet.contains(prefix)) {
+                    m_prefixSet.append(prefix);
+                }
+            } else {
+                m_prefixSet.append(prefix);
+            }
         } else {
             if (!skipUnparsableLines) {
-                //qDebug() << QString("Unable to parse prefix %1").arg(QString(line));
+                qCWarning(networkprefixset_log)
+                    << QString("Stopped parsing, because of: %1").arg(QString(line));
                 m_prefixSet.clear();
                 file.close();
                 return false;

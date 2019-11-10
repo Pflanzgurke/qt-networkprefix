@@ -2,18 +2,19 @@
 #define NETWORKPREFIXSET_H
 
 #include <networkprefix.h>
-#include <QFile>
 
 class NetworkPrefixSet
 {
 public:
     explicit NetworkPrefixSet();
-    explicit NetworkPrefixSet(QFile &file,
+    explicit NetworkPrefixSet(QString &fileName,
                               bool skipUnparsableLines = false,
+                              bool allowDuplicates = true,
                               QString startOfComment = "#");
 
-    bool loadPrefixSetFromFile(QFile &file,
+    bool loadPrefixSetFromFile(QString &fileName,
                                bool skipUnparsableLines = false,
+                               bool allowDuplicates = true,
                                QString startOfComment = "#");
 
     void addPrefix(NetworkPrefix prefix, bool allowDuplicates = true);

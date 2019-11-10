@@ -283,6 +283,105 @@ void networkprefix::prefixArithmetics()
         QVERIFY(!v4Big.containsPrefix(notFitBig));
         QVERIFY(!v4Mid.containsPrefix(notFitMid));
         QVERIFY(!v4Small.containsPrefix(notFitSmall));
+
+        //a prefix by definition contains itself
+        QVERIFY(v4Big.containsPrefix(v4Big));
+        QVERIFY(v4Mid.containsPrefix(v4Mid));
+        QVERIFY(v4Small.containsPrefix(v4Small));
+    }
+
+    //and now the same for v6
+    {
+        NetworkPrefix v6Big("2a03::/16");
+        NetworkPrefix v6Mid("2a03:abcd:1234:5678::/64");
+        NetworkPrefix v6Small("2a03:abcd:1234:5678:3333:1:2::/112");
+        NetworkPrefix notFitBig("2a04::/17");
+        NetworkPrefix notFitMid("2a03:abcd:1234:5679::/65");
+        NetworkPrefix notFitSmall("2a03:abcd:1234:5678:3333:1:3::/113");
+
+        QVERIFY(v6Big.containsPrefix(v6Mid));
+        QVERIFY(v6Big.containsPrefix(v6Small));
+        QVERIFY(v6Mid.containsPrefix(v6Small));
+
+        QVERIFY(!v6Big.containsPrefix(notFitBig));
+        QVERIFY(!v6Mid.containsPrefix(notFitMid));
+        QVERIFY(!v6Small.containsPrefix(notFitSmall));
+
+        //a prefix by definition contains itself
+        QVERIFY(v6Big.containsPrefix(v6Big));
+        QVERIFY(v6Mid.containsPrefix(v6Mid));
+        QVERIFY(v6Small.containsPrefix(v6Small));
+    }
+
+    //now check the above for v4 addresses
+    {
+        NetworkPrefix v4Big("192.0.0.0/8");
+        NetworkPrefix v4Mid("192.168.0.0/16");
+        NetworkPrefix v4Small("192.168.1.0/24");
+        QHostAddress address("192.168.1.17");
+        QHostAddress nullAddress;
+        NetworkPrefix nullPrefix;
+
+        QVERIFY(v4Big.containsAddress(address));
+        QVERIFY(v4Mid.containsAddress(address));
+        QVERIFY(v4Small.containsAddress(address));
+        QVERIFY(!v4Big.containsAddress(nullAddress));
+        QVERIFY(!nullPrefix.containsAddress(nullAddress));
+        QVERIFY(!nullPrefix.containsAddress(address));
+    }
+
+    //now check the above for v6 addresses
+    {
+        NetworkPrefix v6Big("2a03::/16");
+        NetworkPrefix v6Mid("2a03:abcd:1234:5678::/64");
+        NetworkPrefix v6Small("2a03:abcd:1234:5678:3333:1:2::/112");
+        QHostAddress address("2a03:abcd:1234:5678:3333:1:2:12");
+        QHostAddress nullAddress;
+        NetworkPrefix nullPrefix;
+
+        QVERIFY(v6Big.containsAddress(address));
+        QVERIFY(v6Mid.containsAddress(address));
+        QVERIFY(v6Small.containsAddress(address));
+        QVERIFY(!v6Big.containsAddress(nullAddress));
+        QVERIFY(!nullPrefix.containsAddress(nullAddress));
+        QVERIFY(!nullPrefix.containsAddress(address));
+    }
+
+    //check if v4 prefixes can be aggregated
+    {
+        NetworkPrefix notAggregatable("1.2.3.4");
+        NetworkPrefix aggregatableA("192.168.1.0/24");
+        NetworkPrefix aggregatableB("192.168.0.0/24");
+        NetworkPrefix containedInA("192.168.1.128/25");
+
+        QVERIFY(!aggregatableA.canAggregate(notAggregatable));
+        QVERIFY(aggregatableA.canAggregate(containedInA));
+        QVERIFY(aggregatableA.canAggregate(aggregatableB));
+        QVERIFY(NetworkPrefix::aggregate(aggregatableA, containedInA) == aggregatableA);
+        QVERIFY(NetworkPrefix::aggregate(aggregatableA, aggregatableB)
+                == NetworkPrefix(QHostAddress("192.168.0.0"), 23));
+        QVERIFY(NetworkPrefix::aggregate(aggregatableA, notAggregatable) == NetworkPrefix());
+    }
+
+    //check if v6 prefixes can be aggregated
+    {
+        NetworkPrefix notAggregatable("2233::/72");
+        NetworkPrefix aggregatableA("2a03:abcd:1234:5678::/64");
+        NetworkPrefix aggregatableB("2a03:abcd:1234:5679::/64");
+        NetworkPrefix containedInA("2a03:abcd:1234:5678:4321::/80");
+        NetworkPrefix aggregatableC("2a03:abcd:1234:5610::/60");
+        NetworkPrefix aggregatableD("2a03:abcd:1234:5600::/60");
+
+        QVERIFY(!aggregatableA.canAggregate(notAggregatable));
+        QVERIFY(aggregatableA.canAggregate(containedInA));
+        QVERIFY(aggregatableA.canAggregate(aggregatableB));
+        QVERIFY(aggregatableC.canAggregate(aggregatableD));
+        QVERIFY(NetworkPrefix::aggregate(aggregatableA, containedInA) == aggregatableA);
+        QVERIFY(NetworkPrefix::aggregate(aggregatableA, aggregatableB)
+                == NetworkPrefix("2a03:abcd:1234:5678::/63"));
+        QVERIFY(NetworkPrefix::aggregate(aggregatableA, notAggregatable) == NetworkPrefix());
+        QVERIFY(NetworkPrefix::aggregate(aggregatableC, aggregatableD)
+                == NetworkPrefix("2a03:abcd:1234:5600::/59"));
     }
 }
 

@@ -242,7 +242,6 @@ bool NetworkPrefix::isIpv6() const
 
 bool NetworkPrefix::containsAddress(QHostAddress address)
 {
-    //TODO: test what happens if the prefix is invalid
     return address.isInSubnet(m_networkPrefix);
 }
 
@@ -254,7 +253,6 @@ bool NetworkPrefix::containsAddress(QHostAddress address)
 
 bool NetworkPrefix::containsPrefix(NetworkPrefix prefix)
 {
-    //TODO: test
     if (!isValid()) {
         return false;
     }
@@ -263,7 +261,6 @@ bool NetworkPrefix::containsPrefix(NetworkPrefix prefix)
         return false;
     }
 
-    //TODO: does this work? Test
     if (prefix == *this) {
         return true;
     }
@@ -285,71 +282,11 @@ bool NetworkPrefix::containsPrefix(NetworkPrefix prefix)
 
 bool NetworkPrefix::canAggregate(NetworkPrefix prefix)
 {
-    //protocol has to be the same
-    //subnet lengths should be the same and the
-    //network parts should only differ in the last bit
-    //or one prefix is completely contained in the other
-
-    if (addressFamily() != prefix.addressFamily()) {
+    if (aggregate(*this, prefix) == NetworkPrefix()) {
         return false;
     }
 
-    if (prefix.containsPrefix(*this) || containsPrefix(prefix)) {
-        return true;
-    }
-
-    //at this point, we can check whether they can properly be aggregates
-    if (prefixLength() != prefix.prefixLength()) {
-        return false;
-    }
-
-    //now they should only differ in the last bit of the network part
-    if (isIpv4()) {
-        quint32 a = address().toIPv4Address();
-        quint32 b = prefix.address().toIPv4Address();
-
-        if (((a ^ b) >> (32 - prefixLength())) == 1) {
-            return true;
-        }
-    }
-
-    if (isIpv6()) {
-        Q_IPV6ADDR a = address().toIPv6Address();
-        Q_IPV6ADDR b = prefix.address().toIPv6Address();
-
-        int arrCount = prefixLength() / 8;
-        int restBits = prefixLength() % 8;
-
-        for (int i = 0; i < arrCount - 1; ++i) {
-            if (a[15 - i] ^ b[15 - i]) {
-                return false;
-            }
-        }
-
-        //need to check the last arr for 0 and the check the rest bits separately
-        if (restBits) {
-            if (a[15 - arrCount - 1] ^ b[15 - arrCount - 1]) {
-                return false;
-            }
-
-            //check the remaining bits
-            if ((a[arrCount] ^ b[15 - arrCount]) >> restBits == 1) {
-                return true;
-            } else {
-                return false;
-            }
-
-        } else {
-            if ((a[15 - arrCount - 1] ^ b[15 - arrCount - 1]) != 1) {
-                return false;
-            } else {
-                return true;
-            }
-        }
-    }
-
-    //protocol could be unknown for both or v4 check failed, therefore, return false here
-    return false;
+    return true;
 }
 
 /**
@@ -361,11 +298,82 @@ bool NetworkPrefix::canAggregate(NetworkPrefix prefix)
 
 NetworkPrefix NetworkPrefix::aggregate(NetworkPrefix a, NetworkPrefix b)
 {
-    Q_UNUSED(a)
-    Q_UNUSED(b)
-    //TODO: implement
+    //protocol has to be the same
+    //subnet lengths should be the same and the
+    //network parts should only differ in the last bit
+    //or one prefix is completely contained in the other
+
     //return an aggregate if aggregation is possible, otherwise return an
     //invalid prefix
+    if (!a.isValid() || !b.isValid()) {
+        return NetworkPrefix();
+    }
+
+    if (a.addressFamily() != b.addressFamily()) {
+        return NetworkPrefix();
+    }
+
+    if (a.containsPrefix(b)) {
+        return a;
+    }
+
+    if (b.containsPrefix(a)) {
+        return b;
+    }
+
+    //at this point, we can check whether they can properly be aggregates
+    if (a.prefixLength() != b.prefixLength()) {
+        return NetworkPrefix();
+    }
+
+    //check whether they only differ in the last bit
+    if (a.isIpv4()) {
+        quint32 aAsInt = a.address().toIPv4Address();
+        quint32 bAsInt = b.address().toIPv4Address();
+
+        if (((aAsInt ^ bAsInt) >> (32 - a.prefixLength())) == 1) {
+            return NetworkPrefix(a.address(), a.prefixLength() - 1);
+        }
+    }
+
+    if (a.isIpv6()) {
+        Q_IPV6ADDR aAsArray = a.address().toIPv6Address();
+        Q_IPV6ADDR bAsArray = b.address().toIPv6Address();
+
+        int arrCount = a.prefixLength() / 8;
+        int restBits = a.prefixLength() % 8;
+
+        for (int i = 0; i < arrCount - 1; ++i) {
+            //qDebug() << "Checking: " << QString::number(aAsArray[i], 16) << " and "
+            //         << QString::number(aAsArray[i], 16);
+
+            if (aAsArray[i] ^ bAsArray[i]) {
+                return NetworkPrefix();
+            }
+        }
+
+        //need to check the last arr for 0 and the check the rest bits separately
+        if (restBits) {
+            if (aAsArray[arrCount - 1] ^ bAsArray[arrCount - 1]) {
+                return NetworkPrefix();
+            }
+
+            //check the remaining bits
+            if ((aAsArray[arrCount] ^ bAsArray[arrCount]) >> (8 - restBits) == 1) {
+                return NetworkPrefix(a.address(), a.prefixLength() - 1);
+            } else {
+                return NetworkPrefix();
+            }
+
+        } else {
+            if ((aAsArray[arrCount - 1] ^ bAsArray[arrCount - 1]) != 1) {
+                return NetworkPrefix();
+            } else {
+                return NetworkPrefix(a.address(), a.prefixLength() - 1);
+            }
+        }
+    }
+
     return NetworkPrefix();
 }
 

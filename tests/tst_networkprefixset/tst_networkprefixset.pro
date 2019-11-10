@@ -11,3 +11,11 @@ if(! include(../../networkprefixset/networkprefixset.pri) ) {
 }
 
 SOURCES +=  tst_networkprefixset.cpp
+
+RESOURCES += \
+    tst_networkprefixset.qrc
+
+DISTFILES += \
+    tst_input_correct.txt \
+    tst_input_with_duplicates.txt \
+    tst_input_with_errors.txt

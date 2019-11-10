@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>tst_input_correct.txt</file>
+        <file>tst_input_with_duplicates.txt</file>
+        <file>tst_input_with_errors.txt</file>
+    </qresource>
+</RCC>

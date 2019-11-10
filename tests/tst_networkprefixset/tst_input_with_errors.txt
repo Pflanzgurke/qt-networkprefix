@@ -1,0 +1,25 @@
+#this is a comment
+#blank lines are ignored
+
+192.168.1.0/24
+1.2.0.0/16
+12.0.0.0/8
+111.128.0.0/9
+
+#v6
+2a03:abcd:1234:5678:3333:1:2::/112
+2a03:abcd:1234:5678:3333:123a:3::/113
+
+#the following prefixes will be corrected
+113.192.4.0/24
+2a03:abcd:1234:5678:3333:1:2:23/112
+
+#the ones below will be converted to host prefixes
+234.212.112.23
+1234:abcd:1234:abcd:3333:1:2:23
+
+#the one below are invalid
+2a03:abcd:1234:5678:3333:123a:3::121:12/113
+111.128.0.0/-9
+
+faferfwgwetgerwferg

@@ -1,5 +1,9 @@
 #include "networkprefixset.h"
 
+#include <QLoggingCategory>
+
+Q_LOGGING_CATEGORY(networkprefixset_log, "networkprefixset");
+
 NetworkPrefixSet::NetworkPrefixSet()
 : m_currentPrefix(0)
 {
@@ -8,15 +12,16 @@ NetworkPrefixSet::NetworkPrefixSet()
 NetworkPrefixSet::NetworkPrefixSet(QFile &file, bool skipUnparsableLines, QString startOfComment)
 : m_currentPrefix(0)
 {
-    prefixSetFromFile(file, skipUnparsableLines, startOfComment);
+    loadPrefixSetFromFile(file, skipUnparsableLines, startOfComment);
 }
 
-bool NetworkPrefixSet::prefixSetFromFile(QFile &file,
-                                         bool skipUnparsableLines,
-                                         QString startOfComment)
+bool NetworkPrefixSet::loadPrefixSetFromFile(QFile &file,
+                                             bool skipUnparsableLines,
+                                             QString startOfComment)
 {
     if (!file.isOpen()) {
         if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            qCWarning(networkprefixset_log) << "Unable to open file " << file.fileName();
             return false;
         }
     }
@@ -111,7 +116,7 @@ bool NetworkPrefixSet::isCoveredBySet(NetworkPrefix prefix)
     return false;
 }
 
-double NetworkPrefixSet::prefixCount()
+int NetworkPrefixSet::prefixCount()
 {
     return m_prefixSet.count();
 }

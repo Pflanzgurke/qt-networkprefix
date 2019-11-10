@@ -12,9 +12,9 @@ public:
                               bool skipUnparsableLines = false,
                               QString startOfComment = "#");
 
-    bool prefixSetFromFile(QFile &file,
-                           bool skipUnparsableLines = false,
-                           QString startOfComment = "#");
+    bool loadPrefixSetFromFile(QFile &file,
+                               bool skipUnparsableLines = false,
+                               QString startOfComment = "#");
 
     void addPrefix(NetworkPrefix prefix, bool allowDuplicates = true);
     void removePrefix(NetworkPrefix prefix, bool removeDuplicates = false);
@@ -30,7 +30,7 @@ public:
     void resetIterator();
 
     double addressCount(); //double because with IPv6 this can be huge
-    double prefixCount();
+    int prefixCount();
 
 private:
     QVector<NetworkPrefix> m_prefixSet;

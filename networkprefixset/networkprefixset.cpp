@@ -10,25 +10,26 @@ NetworkPrefixSet::NetworkPrefixSet()
 {
 }
 
-NetworkPrefixSet::NetworkPrefixSet(QString &fileName,
-                                   bool skipUnparsableLines,
-                                   bool allowDuplicates,
-                                   QString startOfComment)
-: m_currentPrefix(0)
-{
-    loadPrefixSetFromFile(fileName, skipUnparsableLines, allowDuplicates, startOfComment);
-}
+//NetworkPrefixSet::NetworkPrefixSet(QString &fileName,
+//                                   bool skipUnparsableLines,
+//                                   bool allowDuplicates,
+//                                   QString startOfComment)
+//: m_currentPrefix(0)
+//{
+//    loadPrefixSetFromFile(fileName, skipUnparsableLines, allowDuplicates, startOfComment);
+//}
 
-bool NetworkPrefixSet::loadPrefixSetFromFile(QString &fileName,
-                                             bool skipUnparsableLines,
-                                             bool allowDuplicates,
-                                             QString startOfComment)
+NetworkPrefixSet NetworkPrefixSet::fromFile(QString &fileName,
+                                            bool skipUnparsableLines,
+                                            bool allowDuplicates,
+                                            QString startOfComment)
 {
+    NetworkPrefixSet returnSet;
     QFile file(fileName);
 
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qCWarning(networkprefixset_log) << "Unable to open file " << fileName;
-        return false;
+        return returnSet;
     }
 
     while (!file.atEnd()) {
@@ -50,25 +51,52 @@ bool NetworkPrefixSet::loadPrefixSetFromFile(QString &fileName,
 
         if (prefix.isValid()) {
             if (!allowDuplicates) {
-                if (!m_prefixSet.contains(prefix)) {
-                    m_prefixSet.append(prefix);
+                if (!returnSet.contains(prefix)) {
+                    returnSet.addPrefix(prefix);
                 }
             } else {
-                m_prefixSet.append(prefix);
+                returnSet.addPrefix(prefix);
             }
         } else {
             if (!skipUnparsableLines) {
                 qCWarning(networkprefixset_log)
                     << QString("Stopped parsing, because of: %1").arg(QString(line));
-                m_prefixSet.clear();
+                returnSet.clear();
                 file.close();
-                return false;
+                return returnSet;
             }
         }
     }
 
     file.close();
-    return true;
+    return returnSet;
+}
+
+NetworkPrefixSet NetworkPrefixSet::fromVector(QVector<NetworkPrefix> &prefixes,
+                                              bool allowDuplicates,
+                                              bool removeNullPrefixes)
+{
+    NetworkPrefixSet returnSet;
+
+    if (prefixes.count() == 0) {
+        return returnSet;
+    }
+
+    if (!allowDuplicates || removeNullPrefixes) {
+        for (NetworkPrefix prefix : prefixes) {
+            if (!allowDuplicates && returnSet.contains(prefix)) {
+                continue;
+            }
+            if (removeNullPrefixes && !prefix.isValid()) {
+                continue;
+            }
+            returnSet.m_prefixSet.append(prefix);
+        }
+    } else {
+        returnSet.m_prefixSet = prefixes;
+    }
+
+    return returnSet;
 }
 
 void NetworkPrefixSet::addPrefix(NetworkPrefix prefix, bool allowDuplicates)

@@ -7,15 +7,19 @@ class NetworkPrefixSet
 {
 public:
     explicit NetworkPrefixSet();
-    explicit NetworkPrefixSet(QString &fileName,
-                              bool skipUnparsableLines = false,
-                              bool allowDuplicates = true,
-                              QString startOfComment = "#");
+    //    explicit NetworkPrefixSet(QString &fileName,
+    //                              bool skipUnparsableLines = false,
+    //                              bool allowDuplicates = true,
+    //                              QString startOfComment = "#");
 
-    bool loadPrefixSetFromFile(QString &fileName,
-                               bool skipUnparsableLines = false,
-                               bool allowDuplicates = true,
-                               QString startOfComment = "#");
+    static NetworkPrefixSet fromFile(QString &fileName,
+                                     bool skipUnparsableLines = false,
+                                     bool allowDuplicates = true,
+                                     QString startOfComment = "#");
+
+    static NetworkPrefixSet fromVector(QVector<NetworkPrefix> &prefixes,
+                                       bool allowDuplicates = true,
+                                       bool removeNullPrefixes = true);
 
     void addPrefix(NetworkPrefix prefix, bool allowDuplicates = true);
     void removePrefix(NetworkPrefix prefix, bool removeDuplicates = false);

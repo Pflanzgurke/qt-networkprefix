@@ -118,6 +118,12 @@ void networkprefix::construction()
         validPrefixTest(defaultPrefix, QHostAddress("0.0.0.0"), 0);
     }
 
+    //what about broadcast
+    {
+        NetworkPrefix broadcastPrefix(QHostAddress("255.255.255.255"));
+        validPrefixTest(broadcastPrefix, QHostAddress("255.255.255.255"), 32);
+    }
+
     //what about default in v6?
     //well, we are not testing the basic iteration bits with it, as those would
     //fail, because right now, only prefixes > 64 are supported for iteration
@@ -288,6 +294,16 @@ void networkprefix::prefixArithmetics()
         QVERIFY(v4Big.containsPrefix(v4Big));
         QVERIFY(v4Mid.containsPrefix(v4Mid));
         QVERIFY(v4Small.containsPrefix(v4Small));
+    }
+
+    //what about "special" ones
+    {
+        NetworkPrefix broadcastPrefix("255.255.255.255/32");
+        NetworkPrefix defaultPrefix("0.0.0.0/0");
+        NetworkPrefix bigOne("128.0.0.0/1");
+
+        QVERIFY(defaultPrefix.containsPrefix(broadcastPrefix));
+        QVERIFY(bigOne.containsPrefix(broadcastPrefix));
     }
 
     //and now the same for v6

@@ -17,5 +17,6 @@ RESOURCES += \
 
 DISTFILES += \
     tst_input_correct.txt \
+    tst_input_not_for_general_use_ipv4.txt \
     tst_input_with_duplicates.txt \
     tst_input_with_errors.txt

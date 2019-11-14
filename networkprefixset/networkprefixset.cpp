@@ -2,6 +2,7 @@
 
 #include <QFile>
 #include <QLoggingCategory>
+#include <QtMath>
 
 Q_LOGGING_CATEGORY(networkprefixset_log, "networkprefixset");
 
@@ -19,7 +20,7 @@ NetworkPrefixSet::NetworkPrefixSet()
 //    loadPrefixSetFromFile(fileName, skipUnparsableLines, allowDuplicates, startOfComment);
 //}
 
-NetworkPrefixSet NetworkPrefixSet::fromFile(QString &fileName,
+NetworkPrefixSet NetworkPrefixSet::fromFile(QString fileName,
                                             bool skipUnparsableLines,
                                             bool allowDuplicates,
                                             QString startOfComment)
@@ -99,6 +100,11 @@ NetworkPrefixSet NetworkPrefixSet::fromVector(QVector<NetworkPrefix> &prefixes,
     return returnSet;
 }
 
+QVector<NetworkPrefix> NetworkPrefixSet::toVector() const
+{
+    return m_prefixSet;
+}
+
 void NetworkPrefixSet::addPrefix(NetworkPrefix prefix, bool allowDuplicates)
 {
     if (!allowDuplicates) {
@@ -133,6 +139,17 @@ QHostAddress NetworkPrefixSet::nextAddress()
     return QHostAddress();
 }
 
+NetworkPrefix NetworkPrefixSet::nextPrefix()
+{
+    if (m_currentPrefix < m_prefixSet.size()) {
+        NetworkPrefix returnPrefix = m_prefixSet[m_currentPrefix];
+        ++m_currentPrefix;
+        return returnPrefix;
+    }
+
+    return NetworkPrefix();
+}
+
 NetworkPrefix NetworkPrefixSet::longestPrefixMatch(QHostAddress address)
 {
     //TODO: test
@@ -161,6 +178,79 @@ int NetworkPrefixSet::prefixCount()
     return m_prefixSet.count();
 }
 
+NetworkPrefixSet NetworkPrefixSet::invert(NetworkPrefixSet prefixes)
+{
+    NetworkPrefix prefix(QHostAddress("0.0.0.0"), 0);
+    NetworkPrefixSet returnSet;
+
+    findInvertedPrefixes(prefixes, prefix, returnSet);
+
+    return returnSet;
+}
+
+NetworkPrefix NetworkPrefixSet::findInvertedPrefixes(NetworkPrefixSet inputPrefixes,
+                                                     NetworkPrefix currentPrefix,
+                                                     NetworkPrefixSet &outputPrefixes)
+{
+    NetworkPrefix left(currentPrefix.address(), currentPrefix.prefixLength() + 1);
+    NetworkPrefix right(QHostAddress(currentPrefix.address().toIPv4Address()
+                                     + static_cast<uint>(
+                                         qFloor(qPow(2, 32 - (currentPrefix.prefixLength() + 1))))),
+                        currentPrefix.prefixLength() + 1);
+
+    bool needToGoLeft = false;
+    bool needToGoRight = false;
+    bool leftMatches = false;
+    bool rightMatches = false;
+
+    qDebug() << "Left: " << left;
+    qDebug() << "Right: " << right;
+
+    for (NetworkPrefix x : inputPrefixes.m_prefixSet) {
+        if (x == left) {
+            leftMatches = true;
+            continue;
+        }
+
+        if (left.containsPrefix(x)) {
+            needToGoLeft = true;
+            break;
+        }
+    }
+
+    if (!leftMatches) {
+        if (needToGoLeft && left.prefixLength() < 32) {
+            qDebug() << "going left";
+            findInvertedPrefixes(inputPrefixes, left, outputPrefixes);
+        } else {
+            qDebug() << "Adding: " << left;
+            outputPrefixes.addPrefix(left);
+        }
+    }
+
+    for (NetworkPrefix x : inputPrefixes.m_prefixSet) {
+        if (x == right) {
+            rightMatches = true;
+            continue;
+        }
+        if (right.containsPrefix(x)) {
+            needToGoRight = true;
+            break;
+        }
+    }
+    if (!rightMatches) {
+        if (needToGoRight && right.prefixLength() < 32) {
+            qDebug() << "going right";
+            findInvertedPrefixes(inputPrefixes, right, outputPrefixes);
+        } else {
+            qDebug() << "Adding: " << right;
+            outputPrefixes.addPrefix(right);
+        }
+    }
+
+    return NetworkPrefix();
+}
+
 void NetworkPrefixSet::clear()
 {
     m_prefixSet.clear();
@@ -170,15 +260,29 @@ void NetworkPrefixSet::clear()
 void NetworkPrefixSet::resetIterator()
 {
     m_currentPrefix = 0;
+    for (NetworkPrefix prefix : m_prefixSet) {
+        prefix.resetIterator();
+    }
 }
 
-double NetworkPrefixSet::addressCount()
+quint64 NetworkPrefixSet::addressCount()
 {
-    double count = 0;
+    quint64 count = 0;
 
     for (auto prefix : m_prefixSet) {
         count += prefix.addressCount();
     }
 
     return count;
+}
+
+QDebug operator<<(QDebug dbg, const NetworkPrefixSet &prefixSet)
+{
+    dbg.noquote();
+
+    for (NetworkPrefix prefix : prefixSet.toVector()) {
+        dbg << prefix;
+    }
+
+    return dbg;
 }

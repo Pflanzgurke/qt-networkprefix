@@ -2,6 +2,7 @@
 
 #include <networkprefixset.h>
 #include <QFile>
+#include <QTextStream>
 
 class networkprefixset : public QObject
 {
@@ -109,7 +110,75 @@ void networkprefixset::construction()
     }
 }
 
-void networkprefixset::modification() {}
+void networkprefixset::modification()
+{
+    {
+        NetworkPrefixSet prefixSet;
+        prefixSet.addPrefix(NetworkPrefix(QHostAddress("192.168.0.0"), 16));
+        QVERIFY(prefixSet.prefixCount() == 1);
+        QVERIFY(qFloor(prefixSet.addressCount()) == 65536);
+        prefixSet.addPrefix(NetworkPrefix("192.168.0.0/16"), false);
+        QVERIFY(prefixSet.prefixCount() == 1);
+        prefixSet.addPrefix(NetworkPrefix("192.168.0.0/16"));
+        QVERIFY(prefixSet.prefixCount() == 2);
+        prefixSet.removePrefix(NetworkPrefix("192.168.0.0/16"), true);
+        QVERIFY(prefixSet.prefixCount() == 0);
+        QVERIFY(!prefixSet.contains(NetworkPrefix("192.168.0.0/16")));
+    }
+
+    {
+        NetworkPrefixSet prefixSet;
+        prefixSet.addPrefix(NetworkPrefix(QHostAddress("192.168.0.0"), 16));
+        prefixSet.addPrefix(NetworkPrefix("192.168.0.0/16"));
+        QVERIFY(prefixSet.prefixCount() == 2);
+        prefixSet.addPrefix(NetworkPrefix("192.168.0.0/16"));
+        QVERIFY(prefixSet.prefixCount() == 3);
+        prefixSet.removePrefix(NetworkPrefix("192.168.0.0/16"));
+        QVERIFY(prefixSet.prefixCount() == 2);
+        QVERIFY(prefixSet.contains(NetworkPrefix("192.168.0.0/16")));
+    }
+
+    {
+        NetworkPrefixSet prefixSet;
+        prefixSet.addPrefix(NetworkPrefix("128.0.0.0/1"));
+        prefixSet.addPrefix(NetworkPrefix("64.168.0.0/3"));
+        NetworkPrefixSet invertedSet = NetworkPrefixSet::invert(prefixSet);
+        qDebug() << "Addresses in set " << prefixSet.addressCount();
+        qDebug() << "Addresses in inverted set " << invertedSet.addressCount();
+        qDebug() << "Prefixes in inverted set " << invertedSet.prefixCount();
+        qDebug() << "2^32: " << qNextPowerOfTwo(static_cast<quint64>(4000000000));
+        qDebug() << "address sum: "
+                 << static_cast<quint64>(prefixSet.addressCount() + invertedSet.addressCount());
+
+        QVERIFY((prefixSet.addressCount() + invertedSet.addressCount())
+                == qNextPowerOfTwo(static_cast<quint64>(4000000000)));
+    }
+
+    {
+        NetworkPrefixSet prefixSet = NetworkPrefixSet::fromFile(
+            ":/tst_input_not_for_general_use_ipv4.txt");
+
+        NetworkPrefixSet invertedSet = NetworkPrefixSet::invert(prefixSet);
+        qDebug() << "Addresses in set " << prefixSet.addressCount();
+        qDebug() << "Prefixes in set " << prefixSet.prefixCount();
+        qDebug() << "Addresses in inverted set " << invertedSet.addressCount();
+        qDebug() << "Prefixes in inverted set " << invertedSet.prefixCount();
+        qDebug() << "qFloor(qPow(2, 32): " << qNextPowerOfTwo(static_cast<quint64>(4000000000));
+        qDebug() << "address sum: "
+                 << static_cast<quint64>(prefixSet.addressCount() + invertedSet.addressCount());
+
+        QVERIFY(static_cast<quint64>(prefixSet.addressCount() + invertedSet.addressCount())
+                == qNextPowerOfTwo(static_cast<quint64>(4000000000)));
+        //        QFile outFile("/Users/rolf/Documents/code/qt-networkprefix/tests/tst_networkprefixset/"
+        //                      "tst_input_all_public_ipv4.txt");
+        //        if (outFile.open(QIODevice::ReadWrite | QIODevice::Truncate)) {
+        //            QTextStream outStream(&outFile);
+        //            for (NetworkPrefix prefix : invertedSet.toVector()) {
+        //                outStream << prefix.address().toString() << "/" << prefix.prefixLength() << "\n";
+        //            }
+        //        }
+    }
+}
 
 QTEST_APPLESS_MAIN(networkprefixset)
 

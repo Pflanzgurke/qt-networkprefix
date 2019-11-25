@@ -135,8 +135,25 @@ bool NetworkPrefixSet::contains(NetworkPrefix prefix)
 
 QHostAddress NetworkPrefixSet::nextAddress()
 {
-    //TODO: implement and test
-    return QHostAddress();
+    //TODO: test
+
+    //skip over invalid prefixes
+    while (m_currentPrefix < m_prefixSet.count() && !m_prefixSet[m_currentPrefix].isValid()) {
+        ++m_currentPrefix;
+    }
+
+    //did we reach the end?
+    if (m_currentPrefix >= m_prefixSet.count()) {
+        return QHostAddress();
+    }
+
+    if (m_prefixSet[m_currentPrefix].hasMoreAddresses()) {
+        return m_prefixSet[m_currentPrefix].nextAddress();
+    } else {
+        //m_prefixSet[m_currentPrefix].resetIterator();  //do or don't?
+        ++m_currentPrefix;
+        return nextAddress();
+    }
 }
 
 NetworkPrefix NetworkPrefixSet::nextPrefix()
@@ -148,6 +165,36 @@ NetworkPrefix NetworkPrefixSet::nextPrefix()
     }
 
     return NetworkPrefix();
+}
+
+bool NetworkPrefixSet::hasMorePrefixes()
+{
+    if (m_currentPrefix >= m_prefixSet.count()) {
+        return false;
+    }
+
+    return true;
+}
+
+bool NetworkPrefixSet::hasMoreAddresses()
+{
+    if (m_currentPrefix >= m_prefixSet.size()) {
+        return false;
+    }
+
+    if (m_prefixSet[m_currentPrefix].hasMoreAddresses()) {
+        return true;
+    }
+
+    //if the currentPrefix is out of addresses and if any of the next ones still
+    //has some, the we also return true
+    for (int i = m_currentPrefix + 1; i < m_prefixSet.size(); ++i) {
+        if (m_prefixSet[i].addressCount() > 0) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 NetworkPrefix NetworkPrefixSet::longestPrefixMatch(QHostAddress address)
@@ -168,8 +215,14 @@ NetworkPrefix NetworkPrefixSet::longestPrefixMatch(QHostAddress address)
 
 bool NetworkPrefixSet::isCoveredBySet(NetworkPrefix prefix)
 {
-    Q_UNUSED(prefix)
-    //TODO: implement and test
+    //TODO: test
+
+    for (auto prefixFromSet : m_prefixSet) {
+        if (prefixFromSet.containsPrefix(prefix)) {
+            return true;
+        }
+    }
+
     return false;
 }
 
@@ -180,10 +233,10 @@ int NetworkPrefixSet::prefixCount()
 
 NetworkPrefixSet NetworkPrefixSet::invert(NetworkPrefixSet prefixes)
 {
-    NetworkPrefix prefix(QHostAddress("0.0.0.0"), 0);
+    NetworkPrefix startPrefix(QHostAddress("0.0.0.0"), 0);
     NetworkPrefixSet returnSet;
 
-    findInvertedPrefixes(prefixes, prefix, returnSet);
+    findInvertedPrefixes(prefixes, startPrefix, returnSet);
 
     return returnSet;
 }
@@ -203,8 +256,8 @@ NetworkPrefix NetworkPrefixSet::findInvertedPrefixes(NetworkPrefixSet inputPrefi
     bool leftMatches = false;
     bool rightMatches = false;
 
-    qDebug() << "Left: " << left;
-    qDebug() << "Right: " << right;
+    //qDebug() << "Left: " << left;
+    //qDebug() << "Right: " << right;
 
     for (NetworkPrefix x : inputPrefixes.m_prefixSet) {
         if (x == left) {
@@ -220,10 +273,10 @@ NetworkPrefix NetworkPrefixSet::findInvertedPrefixes(NetworkPrefixSet inputPrefi
 
     if (!leftMatches) {
         if (needToGoLeft && left.prefixLength() < 32) {
-            qDebug() << "going left";
+            //qDebug() << "going left";
             findInvertedPrefixes(inputPrefixes, left, outputPrefixes);
         } else {
-            qDebug() << "Adding: " << left;
+            //qDebug() << "Adding: " << left;
             outputPrefixes.addPrefix(left);
         }
     }
@@ -240,10 +293,10 @@ NetworkPrefix NetworkPrefixSet::findInvertedPrefixes(NetworkPrefixSet inputPrefi
     }
     if (!rightMatches) {
         if (needToGoRight && right.prefixLength() < 32) {
-            qDebug() << "going right";
+            //qDebug() << "going right";
             findInvertedPrefixes(inputPrefixes, right, outputPrefixes);
         } else {
-            qDebug() << "Adding: " << right;
+            //qDebug() << "Adding: " << right;
             outputPrefixes.addPrefix(right);
         }
     }

@@ -29,6 +29,8 @@ public:
 
     QHostAddress nextAddress();
     NetworkPrefix nextPrefix();
+    bool hasMorePrefixes();
+    bool hasMoreAddresses();
 
     NetworkPrefix longestPrefixMatch(QHostAddress address);
     //QVector<QPair<NetworkPrefix, NetworkPrefix>> aggregate(int passes = -1);

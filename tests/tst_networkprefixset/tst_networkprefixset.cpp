@@ -18,6 +18,7 @@ private slots:
     void construction();
     void modification();
     void iteration();
+    void arithmetics();
 };
 
 networkprefixset::networkprefixset()
@@ -158,7 +159,73 @@ void networkprefixset::modification()
         QVERIFY(prefixSet.prefixCount() == 2);
         QVERIFY(prefixSet.contains(NetworkPrefix("192.168.0.0/16")));
     }
+}
 
+void networkprefixset::iteration()
+{
+    {
+        NetworkPrefixSet prefixSet;
+        prefixSet.addPrefix(NetworkPrefix("128.0.0.0/1"));
+        prefixSet.addPrefix(NetworkPrefix("64.168.0.0/3")); //this gets truncated of course
+        int cnt = 0;
+        while (prefixSet.hasMorePrefixes()) {
+            cnt++;
+            NetworkPrefix prefix = prefixSet.nextPrefix();
+            if (cnt == 1) {
+                QVERIFY(NetworkPrefix("128.0.0.0/1") == prefix);
+            } else {
+                QVERIFY(NetworkPrefix("64.168.0.0/3") == prefix);
+            }
+        }
+        QVERIFY(cnt == 2);
+    }
+
+    {
+        NetworkPrefixSet prefixSet;
+        prefixSet.addPrefix(NetworkPrefix("128.0.0.0/25"));
+        prefixSet.addPrefix(NetworkPrefix("64.168.0.0/25"));
+        int cnt = 0;
+        while (prefixSet.hasMoreAddresses()) {
+            ++cnt;
+            QHostAddress address = prefixSet.nextAddress();
+            //qDebug() << address;
+        }
+        //qDebug() << cnt;
+        QVERIFY(cnt == 256);
+    }
+
+    {
+        //mix v4 and v6
+        NetworkPrefixSet prefixSet;
+        prefixSet.addPrefix(NetworkPrefix("128.0.0.0/25"));
+        prefixSet.addPrefix(NetworkPrefix("2001::FFFF:0/112"));
+        int cnt = 0;
+        while (prefixSet.hasMoreAddresses()) {
+            ++cnt;
+            QHostAddress address = prefixSet.nextAddress();
+        }
+        QVERIFY(cnt == 65664);
+    }
+
+    {
+        //add Null prefixes to see whether it works or not
+        NetworkPrefixSet prefixSet;
+        prefixSet.addPrefix(NetworkPrefix());
+        prefixSet.addPrefix(NetworkPrefix("192.168.0.0/24"));
+        prefixSet.addPrefix(NetworkPrefix());
+        prefixSet.addPrefix(NetworkPrefix());
+        int cnt = 0;
+        while (prefixSet.hasMoreAddresses()) {
+            ++cnt;
+            QHostAddress address = prefixSet.nextAddress();
+        }
+        QVERIFY(cnt == 256);
+    }
+}
+
+void networkprefixset::arithmetics()
+{
+    //invert table tests
     {
         NetworkPrefixSet prefixSet;
         prefixSet.addPrefix(NetworkPrefix("128.0.0.0/1"));
@@ -207,52 +274,20 @@ void networkprefixset::modification()
             QVERIFY(!invertedSet.isCoveredBySet(prefix));
         }
     }
-}
 
-void networkprefixset::iteration()
-{
+    //longest prefix match tests
     {
-        NetworkPrefixSet prefixSet;
-        prefixSet.addPrefix(NetworkPrefix("128.0.0.0/1"));
-        prefixSet.addPrefix(NetworkPrefix("64.168.0.0/3")); //this gets truncated of course
-        int cnt = 0;
-        while (prefixSet.hasMorePrefixes()) {
-            cnt++;
-            NetworkPrefix prefix = prefixSet.nextPrefix();
-            if (cnt == 1) {
-                QVERIFY(NetworkPrefix("128.0.0.0/1") == prefix);
-            } else {
-                QVERIFY(NetworkPrefix("64.168.0.0/3") == prefix);
-            }
-        }
-        QVERIFY(cnt == 2);
-    }
-
-    {
-        NetworkPrefixSet prefixSet;
-        prefixSet.addPrefix(NetworkPrefix("128.0.0.0/25"));
-        prefixSet.addPrefix(NetworkPrefix("64.168.0.0/25"));
-        int cnt = 0;
-        while (prefixSet.hasMoreAddresses()) {
-            ++cnt;
-            QHostAddress address = prefixSet.nextAddress();
-            qDebug() << address;
-        }
-        //qDebug() << cnt;
-        QVERIFY(cnt == 256);
-    }
-
-    {
-        //mix v4 and v6
-        NetworkPrefixSet prefixSet;
-        prefixSet.addPrefix(NetworkPrefix("128.0.0.0/25"));
-        prefixSet.addPrefix(NetworkPrefix("2001::FFFF:0/112"));
-        int cnt = 0;
-        while (prefixSet.hasMoreAddresses()) {
-            ++cnt;
-            QHostAddress address = prefixSet.nextAddress();
-        }
-        QVERIFY(cnt == 65664);
+        NetworkPrefixSet prefixes;
+        prefixes.addPrefix(NetworkPrefix("192.168.0.0/24"));
+        prefixes.addPrefix(NetworkPrefix("1.2.3.0/24"));
+        QHostAddress addrA("192.168.0.12");
+        QHostAddress addrB("1.2.3.4");
+        QHostAddress addrC("192.168.1.2");
+        QHostAddress addrD("1.1.3.2");
+        QVERIFY(prefixes.longestPrefixMatch(addrA) == NetworkPrefix("192.168.0.0/24"));
+        QVERIFY(prefixes.longestPrefixMatch(addrB) == NetworkPrefix("1.2.3.0/24"));
+        QVERIFY(prefixes.longestPrefixMatch(addrC) == NetworkPrefix());
+        QVERIFY(prefixes.longestPrefixMatch(addrD) == NetworkPrefix());
     }
 }
 
